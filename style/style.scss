@@ -17,7 +17,9 @@
 
     & > *:nth-child(2n) {
         display: grid;
-        grid-template-columns: max-content max-content;
+        grid-auto-columns: max-content;
+        grid-template-rows: max-content max-content;
+        grid-auto-flow: column;
         column-gap: 1ch;
     }
 }

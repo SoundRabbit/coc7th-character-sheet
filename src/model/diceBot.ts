@@ -25,6 +25,11 @@ const tokens = (src: string): string[] => {
                 result.push(c);
             }
             result.push("");
+        } else if (c == '%') {
+            result[result.length - 1] += c;
+            if (result[result.length - 1].length > 1) {
+                result.push("");
+            }
         } else {
             result[result.length - 1] += c;
         }
@@ -43,6 +48,8 @@ const rpn = (tokens: string[]): string[] => {
             while (ops.length > 0) {
                 if (op_priority <= (operators.get(ops[ops.length - 1]) || 0)) {
                     result.push(ops.pop() || "");
+                } else {
+                    break;
                 }
             }
             ops.push(token);
@@ -73,12 +80,12 @@ const rpn = (tokens: string[]): string[] => {
     return result;
 }
 
-const calc = (rpn_tokens: string[]): number => {
+const calc = (rpn_tokens: string[], vars: Map<string, number>): number => {
     const stack: string[] = [];
     for (const token of rpn_tokens) {
         if (operators.get(token)) {
-            const v1 = Number(stack.pop());
             const v2 = Number(stack.pop());
+            const v1 = Number(stack.pop());
             switch (token) {
                 case '+':
                     stack.push((v1 + v2).toString());
@@ -105,4 +112,4 @@ const calc = (rpn_tokens: string[]): number => {
     return Number(stack.pop());
 }
 
-export const exec = (exp: string): number => calc(rpn(tokens(exp)));
+export const exec = (exp: string, vars: Map<string, number>): number => calc(rpn(tokens(exp)), vars);

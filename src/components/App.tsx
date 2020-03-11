@@ -65,7 +65,6 @@ export class App extends React.Component<Props, State> {
     state: State
     constructor(props: Props) {
         super(props)
-        console.log(DiceBot.tokens("3d6+10+3d5d78+(2d4+1)/2876"));
         this.state = {
             name: "",
             occupation: "",
@@ -107,6 +106,21 @@ export class App extends React.Component<Props, State> {
             current_mp: Unsettled,
             current_luck: Unsettled,
         }
+    }
+
+    roll_all_status() {
+        const vars = new Map<string, number>();
+        this.setState({
+            initial_str: DiceBot.exec(this.state.dice_str, vars),
+            initial_con: DiceBot.exec(this.state.dice_con, vars),
+            initial_siz: DiceBot.exec(this.state.dice_siz, vars),
+            initial_dex: DiceBot.exec(this.state.dice_dex, vars),
+            initial_app: DiceBot.exec(this.state.dice_app, vars),
+            initial_int: DiceBot.exec(this.state.dice_int, vars),
+            initial_pow: DiceBot.exec(this.state.dice_pow, vars),
+            initial_edu: DiceBot.exec(this.state.dice_edu, vars),
+            initial_luck: DiceBot.exec(this.state.dice_luck, vars),
+        })
     }
 
     render(): JSX.Element | null {
@@ -173,22 +187,22 @@ export class App extends React.Component<Props, State> {
                     <div>HP</div>
                     <div>
                         <div>初期値</div>
-                        <div>変化後</div>
                         <Form.Control value={initial_hp.toString()} disabled />
+                        <div>変化後</div>
                         <Form.Control value={current_hp.toString()} />
                     </div>
                     <div>MP</div>
                     <div>
                         <div>初期値</div>
-                        <div>変化後</div>
                         <Form.Control value={initial_hp.toString()} disabled />
+                        <div>変化後</div>
                         <Form.Control value={current_hp.toString()} />
                     </div>
                     <div>SAN</div>
                     <div>
                         <div>初期値</div>
-                        <div>変化後</div>
                         <Form.Control value={initial_san.toString()} disabled />
+                        <div>変化後</div>
                         <Form.Control value={current_san.toString()} />
                     </div>
                 </div>
@@ -275,7 +289,7 @@ export class App extends React.Component<Props, State> {
 
                     <div className="controller" />
                     <div className="controller">
-                        <Button>振り直す</Button>
+                        <Button onClick={() => this.roll_all_status()}>振り直す</Button>
                         <Button variant="danger">リセット</Button>
                     </div>
                     <div className="controller" />
