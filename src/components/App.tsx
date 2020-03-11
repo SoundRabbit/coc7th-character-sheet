@@ -194,9 +194,9 @@ export class App extends React.Component<Props, State> {
                     <div>MP</div>
                     <div>
                         <div>初期値</div>
-                        <Form.Control value={initial_hp.toString()} disabled />
+                        <Form.Control value={initial_mp.toString()} disabled />
                         <div>変化後</div>
-                        <Form.Control value={current_hp.toString()} />
+                        <Form.Control value={current_mp.toString()} />
                     </div>
                     <div>SAN</div>
                     <div>
