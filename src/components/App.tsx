@@ -1,5 +1,6 @@
 import * as React from "react"
 import { Form, Button } from "react-bootstrap"
+import * as DiceBot from "model/DiceBot"
 
 type Props = {}
 
