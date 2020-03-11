@@ -208,6 +208,7 @@ export class App extends React.Component<Props, State> {
                 </div>
                 <div id="status">
                     <div className="heading">能力</div>
+                    <div className="heading">固定</div>
                     <div className="heading">計算方法</div>
                     <div className="heading">初期値</div>
                     <div className="heading">変化後</div>
@@ -216,6 +217,7 @@ export class App extends React.Component<Props, State> {
                     <div className="heading">イクストリーム</div>
 
                     <div>STR</div>
+                    <Form.Check custom type="checkbox" label="" />
                     <Form.Control value={this.state.dice_str} />
                     <Form.Control value={this.state.initial_str.toString()} disabled />
                     <Form.Control value={current_str.toString()} />
@@ -224,6 +226,7 @@ export class App extends React.Component<Props, State> {
                     <Form.Control value={Math.ceil(current_str / 5).toString()} disabled />
 
                     <div>CON</div>
+                    <Form.Check custom type="checkbox" label="" />
                     <Form.Control value={this.state.dice_con} />
                     <Form.Control value={this.state.initial_con.toString()} disabled />
                     <Form.Control value={current_con.toString()} />
@@ -232,6 +235,7 @@ export class App extends React.Component<Props, State> {
                     <Form.Control value={Math.ceil(current_con / 5).toString()} disabled />
 
                     <div>SIZ</div>
+                    <Form.Check custom type="checkbox" label="" />
                     <Form.Control value={this.state.dice_siz} />
                     <Form.Control value={this.state.initial_siz.toString()} disabled />
                     <Form.Control value={current_siz.toString()} />
@@ -240,6 +244,7 @@ export class App extends React.Component<Props, State> {
                     <Form.Control value={Math.ceil(current_siz / 5).toString()} disabled />
 
                     <div>DEX</div>
+                    <Form.Check custom type="checkbox" label="" />
                     <Form.Control value={this.state.dice_dex} />
                     <Form.Control value={this.state.initial_dex.toString()} disabled />
                     <Form.Control value={current_dex.toString()} />
@@ -248,6 +253,7 @@ export class App extends React.Component<Props, State> {
                     <Form.Control value={Math.ceil(current_dex / 5).toString()} disabled />
 
                     <div>APP</div>
+                    <Form.Check custom type="checkbox" label="" />
                     <Form.Control value={this.state.dice_app} />
                     <Form.Control value={this.state.initial_app.toString()} disabled />
                     <Form.Control value={current_app.toString()} />
@@ -256,6 +262,7 @@ export class App extends React.Component<Props, State> {
                     <Form.Control value={Math.ceil(current_app / 5).toString()} disabled />
 
                     <div>INT</div>
+                    <Form.Check custom type="checkbox" label="" />
                     <Form.Control value={this.state.dice_int} />
                     <Form.Control value={this.state.initial_int.toString()} disabled />
                     <Form.Control value={current_int.toString()} />
@@ -264,6 +271,7 @@ export class App extends React.Component<Props, State> {
                     <Form.Control value={Math.ceil(current_int / 5).toString()} disabled />
 
                     <div>EDU</div>
+                    <Form.Check custom type="checkbox" label="" />
                     <Form.Control value={this.state.dice_edu} />
                     <Form.Control value={this.state.initial_edu.toString()} disabled />
                     <Form.Control value={current_edu.toString()} />
@@ -272,6 +280,7 @@ export class App extends React.Component<Props, State> {
                     <Form.Control value={Math.ceil(current_edu / 5).toString()} disabled />
 
                     <div>POW</div>
+                    <Form.Check custom type="checkbox" label="" />
                     <Form.Control value={this.state.dice_pow} />
                     <Form.Control value={this.state.initial_pow.toString()} disabled />
                     <Form.Control value={current_pow.toString()} />
@@ -280,6 +289,7 @@ export class App extends React.Component<Props, State> {
                     <Form.Control value={Math.ceil(current_pow / 5).toString()} disabled />
 
                     <div>LUCK</div>
+                    <Form.Check custom type="checkbox" label="" />
                     <Form.Control value={this.state.dice_luck} />
                     <Form.Control value={this.state.initial_luck.toString()} disabled />
                     <Form.Control value={current_luck.toString()} />
@@ -288,6 +298,7 @@ export class App extends React.Component<Props, State> {
                     <Form.Control value={Math.ceil(current_luck / 5).toString()} disabled />
 
                     <div className="controller" />
+                    <div />
                     <div className="controller">
                         <Button onClick={() => this.roll_all_status()}>振り直す</Button>
                         <Button variant="danger">リセット</Button>

@@ -26,10 +26,11 @@
 
 #status {
     display: grid;
-    grid-template-columns: max-content 1fr max-content max-content max-content max-content max-content;
+    grid-template-columns: max-content max-content 1fr max-content max-content max-content max-content max-content;
     grid-auto-columns: max-content;
     column-gap: 2ch;
     align-items: center;
+    justify-items: center;
     row-gap: 1ch;
     & > .heading {
         text-align: center;
