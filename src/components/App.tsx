@@ -65,6 +65,7 @@ export class App extends React.Component<Props, State> {
     state: State
     constructor(props: Props) {
         super(props)
+        console.log(DiceBot.tokens("3d6+10+3d5d78+(2d4+1)/2876"));
         this.state = {
             name: "",
             occupation: "",
