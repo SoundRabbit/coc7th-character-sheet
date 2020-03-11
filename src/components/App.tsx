@@ -147,11 +147,17 @@ export class App extends React.Component<Props, State> {
     }
 
     set_status_locked_status(status_kind: ActiveStatusKind, locked_status: boolean) {
-        const locked = Object.assign({}, this.state.locked);
-        locked[status_kind] = locked_status;
         this.setState({
-            locked
+            locked: Object.assign({}, this.state.locked, { [status_kind]: locked_status })
         });
+    }
+
+    set_status_dice_roll(status_kind: ActiveStatusKind, dice_roll: string) {
+        if (!this.state.locked[status_kind]) {
+            this.setState({
+                dice_roll: Object.assign({}, this.state.dice_roll, { [status_kind]: dice_roll })
+            });
+        }
     }
 
     render(): JSX.Element | null {
@@ -248,12 +254,14 @@ export class App extends React.Component<Props, State> {
                             onClick={() => this.set_status_locked_status(status_kind, !this.state.locked[status_kind])}
                         />,
                         <Form.Control
+                            as="input"
                             value={
                                 this.state.locked[status_kind] ?
                                     this.state.initial_status[status_kind].toString() :
                                     this.state.dice_roll[status_kind]
                             }
                             disabled={this.state.locked[status_kind]}
+                            onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_status_dice_roll(status_kind, e.currentTarget.value)}
                         />,
                         <Form.Control value={this.state.initial_status[status_kind].toString()} disabled />,
                         <Form.Control value={status[status_kind].toString()} />,
@@ -275,6 +283,9 @@ export class App extends React.Component<Props, State> {
                     <div className="controller" />
                     <div className="controller" />
                     <div className="controller" />
+                </div>
+                <div id="skill">
+
                 </div>
             </div>
         );
