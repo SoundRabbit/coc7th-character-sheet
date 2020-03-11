@@ -7,7 +7,15 @@ const operators = new Map<string, number>([
     ['d', 3]
 ]);
 
-export const tokens = (src: string): string[] => {
+const dice = (n: number, d: number): number => {
+    let result: number = 0;
+    for (let i = 0; i < n; i++) {
+        result += Math.floor(Math.random() * d) + 1;
+    }
+    return result;
+}
+
+const tokens = (src: string): string[] => {
     const result: string[] = [""];
     for (const c of src) {
         if (operators.get(c) || c == '(' || c == ')') {
@@ -25,7 +33,7 @@ export const tokens = (src: string): string[] => {
 }
 
 
-export const rpn = (tokens: string[]): string[] => {
+const rpn = (tokens: string[]): string[] => {
     const ops: string[] = [];
     const result: string[] = [];
 
@@ -64,3 +72,37 @@ export const rpn = (tokens: string[]): string[] => {
 
     return result;
 }
+
+const calc = (rpn_tokens: string[]): number => {
+    const stack: string[] = [];
+    for (const token of rpn_tokens) {
+        if (operators.get(token)) {
+            const v1 = Number(stack.pop());
+            const v2 = Number(stack.pop());
+            switch (token) {
+                case '+':
+                    stack.push((v1 + v2).toString());
+                    break;
+                case '-':
+                    stack.push((v1 - v2).toString());
+                    break;
+                case '*':
+                    stack.push((v1 * v2).toString());
+                    break;
+                case '/':
+                    stack.push((v1 / v2).toString());
+                    break;
+                case 'D':
+                case 'd':
+                    stack.push(dice(v1, v2).toString());
+                    break;
+            }
+        } else {
+            stack.push(token);
+        }
+    }
+
+    return Number(stack.pop());
+}
+
+export const exec = (exp: string): number => calc(rpn(tokens(exp)));
