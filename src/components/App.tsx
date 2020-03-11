@@ -7,12 +7,39 @@ type Props = {}
 const Unsettled = Symbol("Unsettled");
 type Unsettled = typeof Unsettled;
 
+type ActiveStatus<T> = {
+    str: T,
+    con: T,
+    siz: T,
+    dex: T,
+    app: T,
+    int: T,
+    edu: T,
+    pow: T,
+    lck: T,
+}
+
+type ActiveStatusKind = "str" | "con" | "siz" | "dex" | "app" | "int" | "edu" | "pow" | "lck";
+
+const active_status_order: ActiveStatusKind[] = ["str", "con", "siz", "dex", "app", "int", "edu", "pow", "lck"];
+
 const number_from_current_status = (initial_status: number, current_status: Unsettled | number): number => {
     if (current_status == Unsettled) {
         return initial_status;
     } else {
         return current_status;
     }
+}
+
+const current_status = (initial_status: ActiveStatus<number>, current_status: ActiveStatus<Unsettled | number>): ActiveStatus<number> => {
+    let status = Object.assign({}, initial_status);
+    for (const status_kind of active_status_order) {
+        const cs = current_status[status_kind];
+        if (cs !== Unsettled) {
+            initial_status = Object.assign(status, { [status_kind]: cs });
+        }
+    }
+    return status;
 }
 
 type State = {
@@ -25,40 +52,16 @@ type State = {
     birthplace: string,
 
     //能力値ダイス
-    dice_str: string,
-    dice_con: string,
-    dice_siz: string,
-    dice_dex: string,
-    dice_app: string,
-    dice_int: string,
-    dice_pow: string,
-    dice_edu: string,
-    dice_luck: string,
+    dice_roll: ActiveStatus<string>,
 
     // 初期能力値
-    initial_str: number,
-    initial_con: number,
-    initial_siz: number,
-    initial_dex: number,
-    initial_app: number,
-    initial_int: number,
-    initial_pow: number,
-    initial_edu: number,
-    initial_luck: number,
+    initial_status: ActiveStatus<number>,
 
     // 変化後能力値
-    current_str: Unsettled | number,
-    current_con: Unsettled | number,
-    current_siz: Unsettled | number,
-    current_dex: Unsettled | number,
-    current_app: Unsettled | number,
-    current_int: Unsettled | number,
-    current_pow: Unsettled | number,
-    current_edu: Unsettled | number,
+    current_status: ActiveStatus<Unsettled | number>,
     current_hp: Unsettled | number,
     current_san: Unsettled | number,
     current_mp: Unsettled | number,
-    current_luck: Unsettled | number,
 }
 
 export class App extends React.Component<Props, State> {
@@ -73,92 +76,87 @@ export class App extends React.Component<Props, State> {
             residence: "",
             birthplace: "",
 
-            dice_str: "3D6*5",
-            dice_con: "3D6*5",
-            dice_siz: "(2D6+6)*5",
-            dice_dex: "3D6*5",
-            dice_app: "3D6*5",
-            dice_int: "(2D6+6)*5",
-            dice_pow: "3D6*5",
-            dice_edu: "(2D6+6)*5",
-            dice_luck: "3D6*5",
+            dice_roll: {
+                str: "3D6*5",
+                con: "3D6*5",
+                siz: "(2D6+6)*5",
+                dex: "3D6*5",
+                app: "3D6*5",
+                int: "(2D6+6)*5",
+                pow: "3D6*5",
+                edu: "(2D6+6)*5",
+                lck: "3D6*5",
+            },
 
-            initial_str: 0,
-            initial_con: 0,
-            initial_siz: 0,
-            initial_dex: 0,
-            initial_app: 0,
-            initial_int: 0,
-            initial_pow: 0,
-            initial_edu: 0,
-            initial_luck: 0,
+            initial_status: {
+                str: 0,
+                con: 0,
+                siz: 0,
+                dex: 0,
+                app: 0,
+                int: 0,
+                pow: 0,
+                edu: 0,
+                lck: 0,
+            },
 
-            current_str: Unsettled,
-            current_con: Unsettled,
-            current_siz: Unsettled,
-            current_dex: Unsettled,
-            current_app: Unsettled,
-            current_int: Unsettled,
-            current_pow: Unsettled,
-            current_edu: Unsettled,
+            current_status: {
+                str: Unsettled,
+                con: Unsettled,
+                siz: Unsettled,
+                dex: Unsettled,
+                app: Unsettled,
+                int: Unsettled,
+                pow: Unsettled,
+                edu: Unsettled,
+                lck: Unsettled,
+            },
+
             current_hp: Unsettled,
             current_san: Unsettled,
             current_mp: Unsettled,
-            current_luck: Unsettled,
         }
     }
 
     roll_all_status() {
         const vars = new Map<string, number>();
+        let initial_status = Object.assign({}, this.state.initial_status);
+        for (const status_kind of active_status_order) {
+            initial_status = Object.assign(initial_status, { [status_kind]: DiceBot.exec(this.state.dice_roll[status_kind], vars) })
+        }
         this.setState({
-            initial_str: DiceBot.exec(this.state.dice_str, vars),
-            initial_con: DiceBot.exec(this.state.dice_con, vars),
-            initial_siz: DiceBot.exec(this.state.dice_siz, vars),
-            initial_dex: DiceBot.exec(this.state.dice_dex, vars),
-            initial_app: DiceBot.exec(this.state.dice_app, vars),
-            initial_int: DiceBot.exec(this.state.dice_int, vars),
-            initial_pow: DiceBot.exec(this.state.dice_pow, vars),
-            initial_edu: DiceBot.exec(this.state.dice_edu, vars),
-            initial_luck: DiceBot.exec(this.state.dice_luck, vars),
-        })
+            initial_status
+        });
     }
 
     render(): JSX.Element | null {
-        const current_str = number_from_current_status(this.state.initial_str, this.state.current_str);
-        const current_con = number_from_current_status(this.state.initial_con, this.state.current_con);
-        const current_siz = number_from_current_status(this.state.initial_siz, this.state.current_siz);
-        const current_dex = number_from_current_status(this.state.initial_dex, this.state.current_dex);
-        const current_app = number_from_current_status(this.state.initial_app, this.state.current_app);
-        const current_int = number_from_current_status(this.state.initial_int, this.state.current_int);
-        const current_pow = number_from_current_status(this.state.initial_pow, this.state.current_pow);
-        const current_edu = number_from_current_status(this.state.initial_edu, this.state.current_edu);
-        const current_luck = number_from_current_status(this.state.initial_luck, this.state.current_luck);
+        const status = current_status(this.state.initial_status, this.state.current_status);
 
-        const initial_hp = Math.ceil((current_con + current_siz) / 10);
-        const initial_san = current_pow;
-        const initial_mp = Math.ceil(current_pow / 5);
+        const initial_hp = Math.ceil((status.con + status.siz) / 10);
+        const initial_san = status.pow;
+        const initial_mp = Math.ceil(status.pow / 5);
 
         const current_hp = number_from_current_status(initial_hp, this.state.current_hp);
         const current_san = number_from_current_status(initial_san, this.state.current_san);
         const current_mp = number_from_current_status(initial_mp, this.state.current_mp);
 
         const movement = (() => {
-            if (current_str < current_siz && current_dex < current_siz) {
+            if (status.str < status.siz && status.dex < status.siz) {
                 return 7;
-            } else if (current_str == current_siz && current_dex == current_siz) {
-                return 8;
-            } else {
+            } else if (status.str > status.siz && status.dex > status.siz) {
                 return 9;
+            } else {
+                return 8;
             }
         })();
         const damage_bonus = (() => {
-            if (current_siz + current_siz >= 165) {
+            if (status.str + status.siz >= 165) {
                 return "+1d6";
-            } else if (current_siz + current_siz >= 125) {
+            } else if (status.str + status.siz >= 125) {
                 return "+1d4";
-            } else if (current_siz + current_siz >= 85) {
+            } else if (status.str + status.siz >= 85) {
                 return "0";
-            } else if (current_siz + current_siz >= 65) {
+            } else if (status.str + status.siz >= 65) {
                 return "-1";
             } else {
                 return "-2";
@@ -216,86 +214,16 @@ export class App extends React.Component<Props, State> {
                     <div className="heading">ハード</div>
                     <div className="heading">イクストリーム</div>
 
-                    <div>STR</div>
-                    <Form.Check custom type="checkbox" label="" />
-                    <Form.Control value={this.state.dice_str} />
-                    <Form.Control value={this.state.initial_str.toString()} disabled />
-                    <Form.Control value={current_str.toString()} />
-                    <Form.Control value={current_str.toString()} disabled />
-                    <Form.Control value={Math.ceil(current_str / 2).toString()} disabled />
-                    <Form.Control value={Math.ceil(current_str / 5).toString()} disabled />
-
-                    <div>CON</div>
-                    <Form.Check custom type="checkbox" label="" />
-                    <Form.Control value={this.state.dice_con} />
-                    <Form.Control value={this.state.initial_con.toString()} disabled />
-                    <Form.Control value={current_con.toString()} />
-                    <Form.Control value={current_con.toString()} disabled />
-                    <Form.Control value={Math.ceil(current_con / 2).toString()} disabled />
-                    <Form.Control value={Math.ceil(current_con / 5).toString()} disabled />
-
-                    <div>SIZ</div>
-                    <Form.Check custom type="checkbox" label="" />
-                    <Form.Control value={this.state.dice_siz} />
-                    <Form.Control value={this.state.initial_siz.toString()} disabled />
-                    <Form.Control value={current_siz.toString()} />
-                    <Form.Control value={current_siz.toString()} disabled />
-                    <Form.Control value={Math.ceil(current_siz / 2).toString()} disabled />
-                    <Form.Control value={Math.ceil(current_siz / 5).toString()} disabled />
-
-                    <div>DEX</div>
-                    <Form.Check custom type="checkbox" label="" />
-                    <Form.Control value={this.state.dice_dex} />
-                    <Form.Control value={this.state.initial_dex.toString()} disabled />
-                    <Form.Control value={current_dex.toString()} />
-                    <Form.Control value={current_dex.toString()} disabled />
-                    <Form.Control value={Math.ceil(current_dex / 2).toString()} disabled />
-                    <Form.Control value={Math.ceil(current_dex / 5).toString()} disabled />
-
-                    <div>APP</div>
-                    <Form.Check custom type="checkbox" label="" />
-                    <Form.Control value={this.state.dice_app} />
-                    <Form.Control value={this.state.initial_app.toString()} disabled />
-                    <Form.Control value={current_app.toString()} />
-                    <Form.Control value={current_app.toString()} disabled />
-                    <Form.Control value={Math.ceil(current_app / 2).toString()} disabled />
-                    <Form.Control value={Math.ceil(current_app / 5).toString()} disabled />
-
-                    <div>INT</div>
-                    <Form.Check custom type="checkbox" label="" />
-                    <Form.Control value={this.state.dice_int} />
-                    <Form.Control value={this.state.initial_int.toString()} disabled />
-                    <Form.Control value={current_int.toString()} />
-                    <Form.Control value={current_int.toString()} disabled />
-                    <Form.Control value={Math.ceil(current_int / 2).toString()} disabled />
-                    <Form.Control value={Math.ceil(current_int / 5).toString()} disabled />
-
-                    <div>EDU</div>
-                    <Form.Check custom type="checkbox" label="" />
-                    <Form.Control value={this.state.dice_edu} />
-                    <Form.Control value={this.state.initial_edu.toString()} disabled />
-                    <Form.Control value={current_edu.toString()} />
-                    <Form.Control value={current_edu.toString()} disabled />
-                    <Form.Control value={Math.ceil(current_edu / 2).toString()} disabled />
-                    <Form.Control value={Math.ceil(current_edu / 5).toString()} disabled />
-
-                    <div>POW</div>
-                    <Form.Check custom type="checkbox" label="" />
-                    <Form.Control value={this.state.dice_pow} />
-                    <Form.Control value={this.state.initial_pow.toString()} disabled />
-                    <Form.Control value={current_pow.toString()} />
-                    <Form.Control value={current_pow.toString()} disabled />
-                    <Form.Control value={Math.ceil(current_pow / 2).toString()} disabled />
-                    <Form.Control value={Math.ceil(current_pow / 5).toString()} disabled />
-
-                    <div>LUCK</div>
-                    <Form.Check custom type="checkbox" label="" />
-                    <Form.Control value={this.state.dice_luck} />
-                    <Form.Control value={this.state.initial_luck.toString()} disabled />
-                    <Form.Control value={current_luck.toString()} />
-                    <Form.Control value={current_luck.toString()} disabled />
-                    <Form.Control value={Math.ceil(current_luck / 2).toString()} disabled />
-                    <Form.Control value={Math.ceil(current_luck / 5).toString()} disabled />
+                    {active_status_order.map(status_kind => [
+                        <div>{status_kind.toLocaleUpperCase()}</div>,
+                        <Form.Check custom type="checkbox" label="" />,
+                        <Form.Control value={this.state.dice_roll[status_kind]} />,
+                        <Form.Control value={this.state.initial_status[status_kind].toString()} disabled />,
+                        <Form.Control value={status[status_kind].toString()} />,
+                        <Form.Control value={status[status_kind].toString()} disabled />,
+                        <Form.Control value={Math.ceil(status[status_kind] / 2).toString()} disabled />,
+                        <Form.Control value={Math.ceil(status[status_kind] / 5).toString()} disabled />,
+                    ])}
 
                     <div className="controller" />
                     <div />
