@@ -12,6 +12,12 @@ body {
     column-gap: 1.5rem;
     row-gap: 1.5rem;
     padding: 1.5rem;
+    & > * {
+        background-color: $light;
+        padding: 1.5rem;
+        border-radius: 1.5rem;
+        box-shadow: 0px 0px 0.2rem 0.1rem $light;
+    }
 }
 
 #profile {
@@ -21,9 +27,6 @@ body {
     column-gap: 2ch;
     row-gap: 1ch;
     align-items: center;
-    background-color: $light;
-    padding: 1.5rem;
-    border-radius: 1.5rem;
     grid-area: profile;
 
     & > *:nth-child(2n) {
@@ -43,9 +46,6 @@ body {
     align-items: center;
     justify-items: center;
     row-gap: 1ch;
-    background-color: $light;
-    padding: 1.5rem;
-    border-radius: 1.5rem;
     grid-area: status;
 
     & > .heading {
@@ -61,9 +61,6 @@ body {
 }
 
 #skill {
-    background-color: $light;
-    padding: 1.5rem;
-    border-radius: 1.5rem;
     grid-area: skill;
     & > .skill-points {
         display: grid;
