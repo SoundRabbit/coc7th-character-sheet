@@ -65,6 +65,9 @@ type State = {
     current_hp: Unsettled | number,
     current_san: Unsettled | number,
     current_mp: Unsettled | number,
+
+    occupation_point: string,
+    hobby_point: string,
 }
 
 export class App extends React.Component<Props, State> {
@@ -130,6 +133,9 @@ export class App extends React.Component<Props, State> {
             current_hp: Unsettled,
             current_san: Unsettled,
             current_mp: Unsettled,
+
+            occupation_point: "$EDU*4",
+            hobby_point: "$INT*2",
         }
     }
 
@@ -158,6 +164,18 @@ export class App extends React.Component<Props, State> {
                 dice_roll: Object.assign({}, this.state.dice_roll, { [status_kind]: dice_roll })
             });
         }
+    }
+
+    set_occupation_point(occupation_point: string) {
+        this.setState({
+            occupation_point
+        });
+    }
+
+    set_hobby_point(hobby_point: string) {
+        this.setState({
+            hobby_point
+        });
     }
 
     render(): JSX.Element | null {
@@ -193,6 +211,12 @@ export class App extends React.Component<Props, State> {
                 return "-2";
             }
         })();
+
+        const vars = new Map<string, number>(active_status_order.map(status_kind => [status_kind.toLocaleUpperCase(), status[status_kind]]));
+        const max_occupation_point = Math.ceil(DiceBot.exec(this.state.occupation_point, vars));
+        const max_hobby_point = Math.ceil(DiceBot.exec(this.state.hobby_point, vars));
+
+        console.log(vars.entries());
 
         return (
             <div id="app">
@@ -285,7 +309,54 @@ export class App extends React.Component<Props, State> {
                     <div className="controller" />
                 </div>
                 <div id="skill">
-
+                    <div className="skill-points">
+                        <div>
+                            <div>職業ポイント</div>
+                            <div>
+                                <span>（</span>
+                                <span></span>
+                                <span>/</span>
+                                <span>
+                                    {(() => {
+                                        if (max_occupation_point >= 1000) {
+                                            return max_occupation_point.toString();
+                                        } else {
+                                            return ("000" + max_occupation_point).slice(-3);
+                                        }
+                                    })()}
+                                </span>
+                                <span>）</span>
+                            </div>
+                        </div>
+                        <Form.Control
+                            as="input"
+                            value={this.state.occupation_point}
+                            onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_occupation_point(e.currentTarget.value)}
+                        />
+                        <div>
+                            <div>趣味ポイント</div>
+                            <div>
+                                <span>（</span>
+                                <span></span>
+                                <span>/</span>
+                                <span>
+                                    {(() => {
+                                        if (max_hobby_point >= 1000) {
+                                            return max_hobby_point.toString();
+                                        } else {
+                                            return ("000" + max_hobby_point).slice(-3);
+                                        }
+                                    })()}
+                                </span>
+                                <span>）</span>
+                            </div>
+                        </div>
+                        <Form.Control
+                            as="input"
+                            value={this.state.hobby_point}
+                            onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_hobby_point(e.currentTarget.value)}
+                        />
+                    </div>
                 </div>
             </div>
         );
