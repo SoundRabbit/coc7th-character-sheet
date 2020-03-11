@@ -16,12 +16,12 @@ type ActiveStatus<T> = {
     int: T,
     edu: T,
     pow: T,
-    lck: T,
+    luck: T,
 }
 
-type ActiveStatusKind = "str" | "con" | "siz" | "dex" | "app" | "int" | "edu" | "pow" | "lck";
+type ActiveStatusKind = "str" | "con" | "siz" | "dex" | "app" | "int" | "edu" | "pow" | "luck";
 
-const active_status_order: ActiveStatusKind[] = ["str", "con", "siz", "dex", "app", "int", "edu", "pow", "lck"];
+const active_status_order: ActiveStatusKind[] = ["str", "con", "siz", "dex", "app", "int", "edu", "pow", "luck"];
 
 const number_from_current_status = (initial_status: number, current_status: Unsettled | number): number => {
     if (current_status == Unsettled) {
@@ -54,6 +54,9 @@ type State = {
     //能力値ダイス
     dice_roll: ActiveStatus<string>,
 
+    //出目固定
+    locked: ActiveStatus<boolean>,
+
     // 初期能力値
     initial_status: ActiveStatus<number>,
 
@@ -83,9 +86,21 @@ export class App extends React.Component<Props, State> {
                 dex: "3D6*5",
                 app: "3D6*5",
                 int: "(2D6+6)*5",
-                pow: "3D6*5",
                 edu: "(2D6+6)*5",
-                lck: "3D6*5",
+                pow: "3D6*5",
+                luck: "3D6*5",
+            },
+
+            locked: {
+                str: false,
+                con: false,
+                siz: false,
+                dex: false,
+                app: false,
+                int: false,
+                edu: false,
+                pow: false,
+                luck: false,
             },
 
             initial_status: {
@@ -95,9 +110,9 @@ export class App extends React.Component<Props, State> {
                 dex: 0,
                 app: 0,
                 int: 0,
-                pow: 0,
                 edu: 0,
-                lck: 0,
+                pow: 0,
+                luck: 0,
             },
 
             current_status: {
@@ -107,9 +122,9 @@ export class App extends React.Component<Props, State> {
                 dex: Unsettled,
                 app: Unsettled,
                 int: Unsettled,
-                pow: Unsettled,
                 edu: Unsettled,
-                lck: Unsettled,
+                pow: Unsettled,
+                luck: Unsettled,
             },
 
             current_hp: Unsettled,
@@ -122,10 +137,20 @@ export class App extends React.Component<Props, State> {
         const vars = new Map<string, number>();
         let initial_status = Object.assign({}, this.state.initial_status);
         for (const status_kind of active_status_order) {
-            initial_status = Object.assign(initial_status, { [status_kind]: DiceBot.exec(this.state.dice_roll[status_kind], vars) })
+            if (!this.state.locked[status_kind]) {
+                initial_status = Object.assign(initial_status, { [status_kind]: DiceBot.exec(this.state.dice_roll[status_kind], vars) });
+            }
         }
         this.setState({
             initial_status
+        });
+    }
+
+    set_status_locked_status(status_kind: ActiveStatusKind, locked_status: boolean) {
+        const locked = Object.assign({}, this.state.locked);
+        locked[status_kind] = locked_status;
+        this.setState({
+            locked
         });
     }
 
@@ -216,8 +241,20 @@ export class App extends React.Component<Props, State> {
 
                     {active_status_order.map(status_kind => [
                         <div>{status_kind.toLocaleUpperCase()}</div>,
-                        <Form.Check custom type="checkbox" label="" />,
-                        <Form.Control value={this.state.dice_roll[status_kind]} />,
+                        <Form.Check
+                            type="checkbox"
+                            label=""
+                            checked={this.state.locked[status_kind]}
+                            onClick={() => this.set_status_locked_status(status_kind, !this.state.locked[status_kind])}
+                        />,
+                        <Form.Control
+                            value={
+                                this.state.locked[status_kind] ?
+                                    this.state.initial_status[status_kind].toString() :
+                                    this.state.dice_roll[status_kind]
+                            }
+                            disabled={this.state.locked[status_kind]}
+                        />,
                         <Form.Control value={this.state.initial_status[status_kind].toString()} disabled />,
                         <Form.Control value={status[status_kind].toString()} />,
                         <Form.Control value={status[status_kind].toString()} disabled />,
