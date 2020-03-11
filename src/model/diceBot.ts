@@ -19,15 +19,14 @@ const tokens = (src: string): string[] => {
     const result: string[] = [""];
     for (const c of src) {
         if (operators.get(c) || c == '(' || c == ')') {
-            if (result[result.length - 1] === "") {
-                result[result.length - 1] = c;
+            if (result[result.length - 1].length > 0 && isNaN(Number(result[result.length - 1])) && (c == 'D' || c == 'd')) {
+                result[result.length - 1] += c;
             } else {
-                result.push(c);
-            }
-            result.push("");
-        } else if (c == '%') {
-            result[result.length - 1] += c;
-            if (result[result.length - 1].length > 1) {
+                if (result[result.length - 1] === "") {
+                    result[result.length - 1] = c;
+                } else {
+                    result.push(c);
+                }
                 result.push("");
             }
         } else {
@@ -81,34 +80,43 @@ const rpn = (tokens: string[]): string[] => {
 }
 
 const calc = (rpn_tokens: string[], vars: Map<string, number>): number => {
-    const stack: string[] = [];
+    const stack: (string | number)[] = [];
     for (const token of rpn_tokens) {
         if (operators.get(token)) {
             const v2 = Number(stack.pop());
             const v1 = Number(stack.pop());
             switch (token) {
                 case '+':
-                    stack.push((v1 + v2).toString());
+                    stack.push((v1 + v2));
                     break;
                 case '-':
-                    stack.push((v1 - v2).toString());
+                    stack.push((v1 - v2));
                     break;
                 case '*':
-                    stack.push((v1 * v2).toString());
+                    stack.push((v1 * v2));
                     break;
                 case '/':
-                    stack.push((v1 / v2).toString());
+                    stack.push((v1 / v2));
                     break;
                 case 'D':
                 case 'd':
-                    stack.push(dice(v1, v2).toString());
+                    stack.push(dice(v1, v2));
                     break;
             }
         } else {
-            stack.push(token);
+            if (token[0] == "$") {
+                console.log(token.slice(1));
+                const v = vars.get(token.slice(1));
+                if (v || v === 0) {
+                    stack.push(v);
+                } else {
+                    stack.push(NaN);
+                }
+            } else {
+                stack.push(token);
+            }
         }
     }
-
     return Number(stack.pop());
 }
 
