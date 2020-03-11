@@ -63,6 +63,6 @@ module.exports = {
         "react-dom": "ReactDOM"
     },
     devServer: {
-        historyApiFallback: true
+        historyApiFallback: false
     }
 };
