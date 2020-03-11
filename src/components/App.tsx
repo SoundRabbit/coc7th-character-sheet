@@ -191,13 +191,13 @@ export class App extends React.Component<Props, State> {
                     </div>
                 </div>
                 <div id="status">
-                    <div>能力</div>
-                    <div>ダイス<Button>振り直す</Button></div>
-                    <div>初期値</div>
-                    <div>変化後<Button>リセット</Button></div>
-                    <div>レギュラー</div>
-                    <div>ハード</div>
-                    <div>イクストリーム</div>
+                    <div className="heading">能力</div>
+                    <div className="heading">ダイス</div>
+                    <div className="heading">初期値</div>
+                    <div className="heading">変化後</div>
+                    <div className="heading">レギュラー</div>
+                    <div className="heading">ハード</div>
+                    <div className="heading">イクストリーム</div>
 
                     <div>STR</div>
                     <Form.Control value={this.state.dice_str} />
@@ -270,6 +270,19 @@ export class App extends React.Component<Props, State> {
                     <Form.Control value={current_luck.toString()} disabled />
                     <Form.Control value={Math.ceil(current_luck / 2).toString()} disabled />
                     <Form.Control value={Math.ceil(current_luck / 5).toString()} disabled />
+
+                    <div className="controller" />
+                    <div className="controller">
+                        <Button>振り直す</Button>
+                        <Button variant="danger">リセット</Button>
+                    </div>
+                    <div className="controller" />
+                    <div className="controller">
+                        <Button variant="danger">リセット</Button>
+                    </div>
+                    <div className="controller" />
+                    <div className="controller" />
+                    <div className="controller" />
                 </div>
             </div>
         );
