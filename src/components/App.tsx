@@ -208,7 +208,7 @@ export class App extends React.Component<Props, State> {
                 </div>
                 <div id="status">
                     <div className="heading">能力</div>
-                    <div className="heading">ダイス</div>
+                    <div className="heading">計算方法</div>
                     <div className="heading">初期値</div>
                     <div className="heading">変化後</div>
                     <div className="heading">レギュラー</div>
