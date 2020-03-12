@@ -609,7 +609,10 @@ export class App extends React.Component<Props, State> {
                                 })();
                                 const initial_point = (() => {
                                     if (typeof skill.initial_point == "string")
-                                        return Math.ceil(DiceBot.exec(skill.initial_point, current_vars));
+                                        if (this.state.calc_point_based_on_current_status)
+                                            return Math.ceil(DiceBot.exec(skill.initial_point, current_vars));
+                                        else
+                                            return Math.ceil(DiceBot.exec(skill.initial_point, initial_vars));
                                     else
                                         return skill.initial_point;
                                 })();
