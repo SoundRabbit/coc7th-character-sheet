@@ -219,7 +219,7 @@ export class App extends React.Component<Props, State> {
         const current_san = number_from_current_status(initial_san, this.state.current_san);
         const current_mp = number_from_current_status(initial_mp, this.state.current_mp);
 
-        const movement = (() => {
+        const move_rate = (() => {
             if (status.str < status.siz && status.dex < status.siz) {
                 return 7;
             } else if (status.str > status.siz && status.dex > status.siz) {
@@ -276,7 +276,7 @@ export class App extends React.Component<Props, State> {
                     <div>出身</div>
                     <Form.Control value={this.state.birthplace} />
                     <div>移動率</div>
-                    <Form.Control value={movement.toString()} disabled />
+                    <Form.Control value={move_rate.toString()} disabled />
                     <div>ダメージボーナス</div>
                     <Form.Control value={damage_bonus} disabled />
                     <div>HP</div>
