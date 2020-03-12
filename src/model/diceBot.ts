@@ -7,7 +7,7 @@ const operators = new Map<string, number>([
     ['d', 3]
 ]);
 
-const dice = (n: number, d: number): number => {
+export const dice = (n: number, d: number): number => {
     let result: number = 0;
     for (let i = 0; i < n; i++) {
         result += Math.floor(Math.random() * d) + 1;
