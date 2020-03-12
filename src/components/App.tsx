@@ -23,6 +23,115 @@ type ActiveStatusKind = "str" | "con" | "siz" | "dex" | "app" | "int" | "edu" | 
 
 const active_status_order: ActiveStatusKind[] = ["str", "con", "siz", "dex", "app", "int", "edu", "pow", "luck"];
 
+type Skill = {
+    tag: "Skill",
+    name: symbol | string,
+    occupation_point: number,
+    hobby_point: number,
+    other_point: number,
+    initial_point: number | string,
+}
+
+type SkillGroupe = {
+    tag: "SkillGroupe",
+    name: symbol | string,
+    skills: Skill[],
+}
+
+type Skills = (Skill | SkillGroupe)[];
+
+const Skill = (name: symbol | string, initial_point: number | string): Skill => ({
+    tag: "Skill",
+    name: name,
+    occupation_point: 0,
+    hobby_point: 0,
+    other_point: 0,
+    initial_point: initial_point
+});
+
+const SkillGroupe = (name: symbol | string, skills: Skill[]): SkillGroupe => ({
+    tag: "SkillGroupe",
+    name: name,
+    skills: skills
+})
+
+const default_skills = (): Skills => ([
+    Skill(Symbol.for("威圧"), 15),
+    Skill(Symbol.for("言いくるめ"), 5),
+    Skill(Symbol.for("医学"), 1),
+    Skill(Symbol.for("運転（自動車）"), 20),
+    Skill(Symbol.for("応急手当"), 30),
+    Skill(Symbol.for("オカルト"), 5),
+    Skill(Symbol.for("隠密"), 20),
+    Skill(Symbol.for("回避"), "$DEX/2"),
+    SkillGroupe(Symbol.for("科学"), [
+        Skill("", 1)
+    ]),
+    Skill(Symbol.for("鍵開け"), 1),
+    Skill(Symbol.for("鑑定"), 5),
+    Skill(Symbol.for("機械修理"), 10),
+    Skill(Symbol.for("聞き耳"), 20),
+    SkillGroupe(Symbol.for("近接戦闘"), [
+        Skill(Symbol.for("斧"), 15),
+        Skill(Symbol.for("格闘"), 25),
+        Skill(Symbol.for("絞殺ひも"), 15),
+        Skill(Symbol.for("チェーンソー"), 10),
+        Skill(Symbol.for("刀剣"), 20),
+        Skill(Symbol.for("フレイル"), 10),
+        Skill(Symbol.for("鞭"), 5),
+        Skill(Symbol.for("槍"), 20),
+    ]),
+    Skill(Symbol.for("クトゥルフ神話"), 0),
+    SkillGroupe(Symbol.for("芸術/製作"), [
+        Skill("", 5)
+    ]),
+    Skill(Symbol.for("経理"), 5),
+    Skill(Symbol.for("考古学"), 1),
+    SkillGroupe(Symbol.for("サバイバル"), [
+        Skill("", 10)
+    ]),
+    Skill(Symbol.for("自然"), 10),
+    SkillGroupe(Symbol.for("射撃"), [
+        Skill(Symbol.for("火炎放射器"), 10),
+        Skill(Symbol.for("拳銃"), 20),
+        Skill(Symbol.for("サブマシンガン"), 15),
+        Skill(Symbol.for("重火器"), 10),
+        Skill(Symbol.for("マシンガン"), 10),
+        Skill(Symbol.for("弓"), 15),
+        Skill(Symbol.for("ライフル/ショットガン"), 25),
+    ]),
+    Skill(Symbol.for("重機械操作"), 1),
+    Skill(Symbol.for("信用"), 0),
+    Skill(Symbol.for("心理学"), 10),
+    Skill(Symbol.for("人類学"), 1),
+    Skill(Symbol.for("水泳"), 20),
+    Skill(Symbol.for("精神分析"), 1),
+    Skill(Symbol.for("説得"), 10),
+    Skill(Symbol.for("操縦"), 1),
+    Skill(Symbol.for("跳躍"), 20),
+    Skill(Symbol.for("追跡"), 10),
+    Skill(Symbol.for("手さばき"), 10),
+    Skill(Symbol.for("電気修理"), 10),
+    Skill(Symbol.for("投擲"), 20),
+    Skill(Symbol.for("登攀"), 20),
+    Skill(Symbol.for("図書館"), 20),
+    Skill(Symbol.for("ナビゲート"), 10),
+    Skill(Symbol.for("変装"), 5),
+    Skill(Symbol.for("法律"), 5),
+    SkillGroupe(Symbol.for("他言語"), [
+        Skill("", 1)
+    ]),
+    SkillGroupe(Symbol.for("母国語"), [
+        Skill("", "$EDU")
+    ]),
+    Skill(Symbol.for("魅惑"), 15),
+    Skill(Symbol.for("目星"), 25),
+    Skill(Symbol.for("歴史"), 5),
+    SkillGroupe(Symbol.for("追加技能"), [
+        Skill("", 0)
+    ]),
+])
+
 const number_from_current_status = (initial_status: number, current_status: Unsettled | number): number => {
     if (current_status == Unsettled) {
         return initial_status;
@@ -70,6 +179,8 @@ type State = {
     hobby_point: string,
     calc_occupation_point_based_on_current_status: boolean,
     calc_hobby_point_based_on_current_status: boolean,
+
+    skills: Skills
 }
 
 export class App extends React.Component<Props, State> {
@@ -140,6 +251,8 @@ export class App extends React.Component<Props, State> {
             hobby_point: "$INT*2",
             calc_occupation_point_based_on_current_status: false,
             calc_hobby_point_based_on_current_status: false,
+
+            skills: default_skills(),
         }
     }
 
@@ -486,6 +599,90 @@ export class App extends React.Component<Props, State> {
                             id="calc-hobby-point-based-on-current-status"
                             onClick={() => this.set_calc_hobby_point_based_on_current_status_flag(!this.state.calc_hobby_point_based_on_current_status)}
                         />
+                    </div>
+                    <div className="skill-list">
+                        <div className="heading" />
+                        <div className="heading">技能</div>
+                        <div className="heading">職業ポイント</div>
+                        <div className="heading">趣味ポイント</div>
+                        <div className="heading">その他ポイント</div>
+                        <div className="heading">初期ポイント</div>
+                        <div className="heading">合計</div>
+                        <div className="heading">レギュラー</div>
+                        <div className="heading">ハード</div>
+                        <div className="heading">イクストリーム</div>
+                        {this.state.skills.map((item: Skill | SkillGroupe) => {
+                            const row = (skill: Skill) => {
+                                const skill_name = (() => {
+                                    if (typeof skill.name == "symbol")
+                                        return Symbol.keyFor(skill.name);
+                                    else
+                                        return skill.name;
+                                })();
+                                const initial_point = (() => {
+                                    if (typeof skill.initial_point == "string")
+                                        return Math.ceil(DiceBot.exec(skill.initial_point, current_vars));
+                                    else
+                                        return skill.initial_point;
+                                })();
+                                const sum = skill.occupation_point + skill.hobby_point + skill.other_point + initial_point;
+                                return [
+                                    <div className="row-controller">
+                                        <Button variant="danger" disabled={typeof skill.name == "symbol"}>×</Button>
+                                    </div>,
+                                    <Form.Control
+                                        value={skill_name}
+                                        disabled={typeof skill.name == "symbol"}
+                                    />,
+                                    <Form.Control
+                                        value={skill.occupation_point.toString()}
+                                    />,
+                                    <Form.Control
+                                        value={skill.hobby_point.toString()}
+                                    />,
+                                    <Form.Control
+                                        value={skill.other_point.toString()}
+                                    />,
+                                    <Form.Control
+                                        value={skill.initial_point.toString()}
+                                    />,
+                                    <Form.Control value={sum.toString()} disabled />,
+                                    <Form.Control value={sum.toString()} disabled />,
+                                    <Form.Control value={Math.ceil(sum / 2).toString()} disabled />,
+                                    <Form.Control value={Math.ceil(sum / 5).toString()} disabled />
+                                ];
+                            };
+                            switch (item.tag) {
+                                case "Skill":
+                                    return row(item);
+                                case "SkillGroupe":
+                                    const groupe_name = (() => {
+                                        if (typeof item.name == "symbol")
+                                            return Symbol.keyFor(item.name);
+                                        else
+                                            return item.name;
+                                    })();
+                                    return [
+                                        <div />,
+                                        <Form.Control
+                                            className="penetrating-heading"
+                                            value={groupe_name}
+                                            disabled={typeof item.name == "symbol"}
+                                        />,
+                                        item.skills.map(skill => row(skill)),
+                                        <div />,
+                                        <Button variant="primary">追加</Button>,
+                                        <div />,
+                                        <div />,
+                                        <div />,
+                                        <div />,
+                                        <div />,
+                                        <div />,
+                                        <div />,
+                                        <div />,
+                                    ];
+                            }
+                        })}
                     </div>
                 </div>
             </div>

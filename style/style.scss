@@ -73,6 +73,27 @@ body {
             align-items: center;
         }
     }
+
+    & .skill-list {
+        display: grid;
+        grid-template-columns: max-content max-content 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+        grid-auto-rows: max-content;
+        row-gap: 1ch;
+        column-gap: 2ch;
+        & > .penetrating-heading {
+            grid-column: 2 / -1;
+        }
+        & > .row-controller {
+            display: grid;
+            grid-auto-columns: max-content;
+            grid-template-rows: max-content;
+            grid-auto-flow: column;
+            column-gap: 1ch;
+        }
+        & > .heading {
+            justify-self: center;
+        }
+    }
 }
 
 @media screen and (max-width: 1199px) {
