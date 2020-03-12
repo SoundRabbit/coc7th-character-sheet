@@ -219,6 +219,22 @@ export class App extends React.Component<Props, State> {
         });
     }
 
+    reset_all_status() {
+        this.setState({
+            dice_roll: {
+                str: "3D6*5",
+                con: "3D6*5",
+                siz: "(2D6+6)*5",
+                dex: "3D6*5",
+                app: "3D6*5",
+                int: "(2D6+6)*5",
+                edu: "(2D6+6)*5",
+                pow: "3D6*5",
+                luck: "3D6*5",
+            }
+        });
+    }
+
     set_status_locked_status(status_kind: ActiveStatusKind, locked_status: boolean) {
         this.setState({
             locked: Object.assign({}, this.state.locked, { [status_kind]: locked_status })
@@ -428,7 +444,7 @@ export class App extends React.Component<Props, State> {
                     <div />
                     <div className="controller">
                         <Button onClick={() => this.roll_all_status()}>振り直す</Button>
-                        <Button variant="danger">リセット</Button>
+                        <Button variant="danger" onClick={() => this.reset_all_status()}>リセット</Button>
                     </div>
                     <div className="controller" />
                     <div className="controller">
