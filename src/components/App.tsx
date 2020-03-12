@@ -157,6 +157,12 @@ export class App extends React.Component<Props, State> {
         });
     }
 
+    set_sex(sex: string) {
+        this.setState({
+            sex
+        });
+    }
+
     set_residence(residence: string) {
         this.setState({
             residence
@@ -242,7 +248,7 @@ export class App extends React.Component<Props, State> {
             }
         })();
 
-        const vars = new Map<string, number>(active_status_order.map(status_kind => [status_kind.toLocaleUpperCase(), status[status_kind]]));
+        const vars = new Map<string, number>(active_status_order.map(status_kind => [status_kind.toLocaleUpperCase(), this.state.initial_status[status_kind]]));
         const max_occupation_point = Math.ceil(DiceBot.exec(this.state.occupation_point, vars));
         const max_hobby_point = Math.ceil(DiceBot.exec(this.state.hobby_point, vars));
 
@@ -264,17 +270,17 @@ export class App extends React.Component<Props, State> {
             <div id="app">
                 <div id="profile">
                     <div>PC名</div>
-                    <Form.Control value={this.state.name} />
+                    <Form.Control value={this.state.name} onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_name(e.currentTarget.value)} />
                     <div>職業</div>
-                    <Form.Control value={this.state.occupation} />
+                    <Form.Control value={this.state.occupation} onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_occupation(e.currentTarget.value)} />
                     <div>年齢</div>
-                    <Form.Control value={this.state.age} />
+                    <Form.Control value={this.state.age} onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_age(e.currentTarget.value)} />
                     <div>性別</div>
-                    <Form.Control value={this.state.sex} />
+                    <Form.Control value={this.state.sex} onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_sex(e.currentTarget.value)} />
                     <div>住所</div>
-                    <Form.Control value={this.state.residence} />
+                    <Form.Control value={this.state.residence} onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_residence(e.currentTarget.value)} />
                     <div>出身</div>
-                    <Form.Control value={this.state.birthplace} />
+                    <Form.Control value={this.state.birthplace} onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_birthplace(e.currentTarget.value)} />
                     <div>移動率</div>
                     <Form.Control value={move_rate.toString()} disabled />
                     <div>ダメージボーナス</div>
