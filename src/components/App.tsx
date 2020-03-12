@@ -179,6 +179,33 @@ export class App extends React.Component<Props, State> {
         });
     }
 
+    set_current_hp(maybe_current_hp: string) {
+        const current_hp = Number(maybe_current_hp);
+        if (!isNaN(current_hp)) {
+            this.setState({
+                current_hp
+            });
+        }
+    }
+
+    set_current_mp(maybe_current_mp: string) {
+        const current_mp = Number(maybe_current_mp);
+        if (!isNaN(current_mp)) {
+            this.setState({
+                current_mp
+            });
+        }
+    }
+
+    set_current_san(maybe_current_san: string) {
+        const current_san = Number(maybe_current_san);
+        if (!isNaN(current_san)) {
+            this.setState({
+                current_san
+            });
+        }
+    }
+
     roll_all_status() {
         const vars = new Map<string, number>();
         let initial_status = Object.assign({}, this.state.initial_status);
@@ -340,21 +367,21 @@ export class App extends React.Component<Props, State> {
                         <div>初期値</div>
                         <Form.Control value={initial_hp.toString()} disabled />
                         <div>変化後</div>
-                        <Form.Control value={current_hp.toString()} />
+                        <Form.Control value={current_hp.toString()} onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_current_hp(e.currentTarget.value)} />
                     </div>
                     <div>MP</div>
                     <div>
                         <div>初期値</div>
                         <Form.Control value={initial_mp.toString()} disabled />
                         <div>変化後</div>
-                        <Form.Control value={current_mp.toString()} />
+                        <Form.Control value={current_mp.toString()} onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_current_mp(e.currentTarget.value)} />
                     </div>
                     <div>SAN</div>
                     <div>
                         <div>初期値</div>
                         <Form.Control value={initial_san.toString()} disabled />
                         <div>変化後</div>
-                        <Form.Control value={current_san.toString()} />
+                        <Form.Control value={current_san.toString()} onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_current_san(e.currentTarget.value)} />
                     </div>
                 </div>
                 <div id="status">
