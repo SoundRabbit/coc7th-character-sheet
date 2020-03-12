@@ -403,6 +403,73 @@ export class App extends React.Component<Props, State> {
         });
     }
 
+    set_skill_name(skill: Skill, name: string) {
+        const skills = this.state.skills.concat();
+        skill.name = name;
+        this.setState({
+            skills
+        });
+    }
+
+    set_skill_occupation_point(skill: Skill, maybe_point: string) {
+        const point = Number(maybe_point);
+        if (!isNaN(point)) {
+            const skills = this.state.skills.concat();
+            skill.occupation_point = point;
+            this.setState({
+                skills
+            });
+        }
+    }
+
+    set_skill_hobby_point(skill: Skill, maybe_point: string) {
+        const point = Number(maybe_point);
+        if (!isNaN(point)) {
+            const skills = this.state.skills.concat();
+            skill.hobby_point = point;
+            this.setState({
+                skills
+            });
+        }
+    }
+
+    set_skill_other_point(skill: Skill, maybe_point: string) {
+        const point = Number(maybe_point);
+        if (!isNaN(point)) {
+            const skills = this.state.skills.concat();
+            skill.other_point = point;
+            this.setState({
+                skills
+            });
+        }
+    }
+
+    set_skill_initial_point(skill: Skill, point: string) {
+        const skills = this.state.skills.concat();
+        skill.initial_point = point;
+        this.setState({
+            skills
+        });
+    }
+
+    add_skill_to_skill_groupe(skill_groupe: SkillGroupe) {
+        const skills = this.state.skills.concat();
+        skill_groupe.skills.push(Skill("", 0));
+        this.setState({
+            skills
+        });
+    }
+
+    remove_skill(parent: Skills | Skill[], skill: Skill) {
+        const index = parent.indexOf(skill);
+        if (index >= 0) {
+            parent.splice(index, 1);
+            this.setState({
+                skills: this.state.skills.concat()
+            });
+        }
+    }
+
     render(): JSX.Element | null {
         const status = current_status(this.state.initial_status, this.state.current_status);
 
@@ -463,6 +530,16 @@ export class App extends React.Component<Props, State> {
                 return (filler + x).slice(-d);
             }
         }
+
+        const [used_occupation_point, used_hobby_point] = this.state.skills.reduce((pre, skill) => {
+            switch (skill.tag) {
+                case "Skill":
+                    return [pre[0] + skill.occupation_point, pre[1] + skill.hobby_point];
+                case "SkillGroupe":
+                    const cur = skill.skills.reduce((pre, skill) => [pre[0] + skill.occupation_point, pre[1] + skill.hobby_point], [0, 0]);
+                    return [pre[0] + cur[0], pre[1] + cur[1]];
+            }
+        }, [0, 0]);
 
         return (
             <div id="app">
@@ -571,7 +648,7 @@ export class App extends React.Component<Props, State> {
                     <div className="skill-points">
                         <h5>
                             <span>職業ポイント</span>
-                            <span>(/{digit(max_occupation_point, 3)})</span>
+                            <span>({digit(used_occupation_point, 3)}/{digit(max_occupation_point, 3)})</span>
                         </h5>
                         <Form.Control
                             as="input"
@@ -580,7 +657,7 @@ export class App extends React.Component<Props, State> {
                         />
                         <h5>
                             <span>趣味ポイント</span>
-                            <span>(/{digit(max_hobby_point, 3)})</span>
+                            <span>({digit(used_hobby_point, 3)}/{digit(max_hobby_point, 3)})</span>
                         </h5>
                         <Form.Control
                             as="input"
@@ -600,7 +677,7 @@ export class App extends React.Component<Props, State> {
                         <div className="heading">ハード</div>
                         <div className="heading">イクストリーム</div>
                         {this.state.skills.map((item: Skill | SkillGroupe) => {
-                            const row = (skill: Skill) => {
+                            const row = (parent: Skills | Skill[], skill: Skill) => {
                                 const skill_name = (() => {
                                     if (typeof skill.name == "symbol")
                                         return Symbol.keyFor(skill.name);
@@ -619,23 +696,28 @@ export class App extends React.Component<Props, State> {
                                 const sum = skill.occupation_point + skill.hobby_point + skill.other_point + initial_point;
                                 return [
                                     <div className="row-controller">
-                                        <Button variant="danger" disabled={typeof skill.name == "symbol"}>×</Button>
+                                        <Button variant="danger" disabled={typeof skill.name == "symbol"} onClick={() => this.remove_skill(parent, skill)}>×</Button>
                                     </div>,
                                     <Form.Control
                                         value={skill_name}
                                         disabled={typeof skill.name == "symbol"}
+                                        onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_skill_name(skill, e.currentTarget.value)}
                                     />,
                                     <Form.Control
                                         value={skill.occupation_point.toString()}
+                                        onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_skill_occupation_point(skill, e.currentTarget.value)}
                                     />,
                                     <Form.Control
                                         value={skill.hobby_point.toString()}
+                                        onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_skill_hobby_point(skill, e.currentTarget.value)}
                                     />,
                                     <Form.Control
                                         value={skill.other_point.toString()}
+                                        onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_skill_other_point(skill, e.currentTarget.value)}
                                     />,
                                     <Form.Control
                                         value={skill.initial_point.toString()}
+                                        onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_skill_initial_point(skill, e.currentTarget.value)}
                                     />,
                                     <Form.Control value={sum.toString()} disabled />,
                                     <Form.Control value={sum.toString()} disabled />,
@@ -645,7 +727,7 @@ export class App extends React.Component<Props, State> {
                             };
                             switch (item.tag) {
                                 case "Skill":
-                                    return row(item);
+                                    return row(this.state.skills, item);
                                 case "SkillGroupe":
                                     const groupe_name = (() => {
                                         if (typeof item.name == "symbol")
@@ -660,9 +742,9 @@ export class App extends React.Component<Props, State> {
                                             value={groupe_name}
                                             disabled={typeof item.name == "symbol"}
                                         />,
-                                        item.skills.map(skill => row(skill)),
+                                        item.skills.map((skill) => row(item.skills, skill)),
                                         <div />,
-                                        <Button variant="primary">追加</Button>,
+                                        <Button variant="primary" onClick={() => this.add_skill_to_skill_groupe(item)}>追加</Button>,
                                         <div />,
                                         <div />,
                                         <div />,
