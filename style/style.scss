@@ -62,11 +62,11 @@ body {
     & > .skill-points {
         display: grid;
         grid-auto-columns: max-content;
-        grid-template-rows: max-content max-content;
+        grid-template-rows: max-content max-content max-content;
         grid-auto-flow: column;
         column-gap: 2ch;
         row-gap: 1ch;
-        & > div {
+        & > h5 {
             display: grid;
             grid-template-columns: max-content max-content;
             column-gap: 1ch;

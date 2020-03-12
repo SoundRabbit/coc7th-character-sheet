@@ -68,6 +68,8 @@ type State = {
 
     occupation_point: string,
     hobby_point: string,
+    calc_occupation_point_based_on_current_status: boolean,
+    calc_hobby_point_based_on_current_status: boolean,
 }
 
 export class App extends React.Component<Props, State> {
@@ -136,6 +138,8 @@ export class App extends React.Component<Props, State> {
 
             occupation_point: "$EDU*4",
             hobby_point: "$INT*2",
+            calc_occupation_point_based_on_current_status: false,
+            calc_hobby_point_based_on_current_status: false,
         }
     }
 
@@ -239,6 +243,18 @@ export class App extends React.Component<Props, State> {
         });
     }
 
+    set_calc_occupation_point_based_on_current_status_flag(calc_occupation_point_based_on_current_status: boolean) {
+        this.setState({
+            calc_occupation_point_based_on_current_status
+        });
+    }
+
+    set_calc_hobby_point_based_on_current_status_flag(calc_hobby_point_based_on_current_status: boolean) {
+        this.setState({
+            calc_hobby_point_based_on_current_status
+        });
+    }
+
     render(): JSX.Element | null {
         const status = current_status(this.state.initial_status, this.state.current_status);
 
@@ -273,9 +289,20 @@ export class App extends React.Component<Props, State> {
             }
         })();
 
-        const vars = new Map<string, number>(active_status_order.map(status_kind => [status_kind.toLocaleUpperCase(), this.state.initial_status[status_kind]]));
-        const max_occupation_point = Math.ceil(DiceBot.exec(this.state.occupation_point, vars));
-        const max_hobby_point = Math.ceil(DiceBot.exec(this.state.hobby_point, vars));
+        const initial_vars = new Map<string, number>(active_status_order.map(status_kind => [status_kind.toLocaleUpperCase(), this.state.initial_status[status_kind]]));
+        const current_vars = new Map<string, number>(active_status_order.map(status_kind => [status_kind.toLocaleUpperCase(), status[status_kind]]));
+        const max_occupation_point = (() => {
+            if (this.state.calc_occupation_point_based_on_current_status)
+                return Math.ceil(DiceBot.exec(this.state.occupation_point, current_vars));
+            else
+                return Math.ceil(DiceBot.exec(this.state.occupation_point, initial_vars));
+        })();
+        const max_hobby_point = (() => {
+            if (this.state.calc_hobby_point_based_on_current_status)
+                return Math.ceil(DiceBot.exec(this.state.hobby_point, current_vars));
+            else
+                return Math.ceil(DiceBot.exec(this.state.hobby_point, initial_vars));
+        })();
 
         const digit = (x: number, d: number): string => {
             if (x >= Math.pow(10, d)) {
@@ -288,8 +315,6 @@ export class App extends React.Component<Props, State> {
                 return (filler + x).slice(-d);
             }
         }
-
-        console.log(vars.entries());
 
         return (
             <div id="app">
@@ -345,6 +370,8 @@ export class App extends React.Component<Props, State> {
                     {active_status_order.map(status_kind => [
                         <div>{status_kind.toLocaleUpperCase()}</div>,
                         <Form.Check
+                            custom
+                            id={`lock-${status_kind}`}
                             type="checkbox"
                             label=""
                             checked={this.state.locked[status_kind]}
@@ -386,23 +413,35 @@ export class App extends React.Component<Props, State> {
                 </div>
                 <div id="skill">
                     <div className="skill-points">
-                        <div>
-                            <div>職業ポイント</div>
-                            <div>(/{digit(max_occupation_point, 3)})</div>
-                        </div>
+                        <h5>
+                            <span>職業ポイント</span>
+                            <span>(/{digit(max_occupation_point, 3)})</span>
+                        </h5>
                         <Form.Control
                             as="input"
                             value={this.state.occupation_point}
                             onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_occupation_point(e.currentTarget.value)}
                         />
-                        <div>
-                            <div>趣味ポイント</div>
-                            <div>(/{digit(max_hobby_point, 3)})</div>
-                        </div>
+                        <Form.Check
+                            custom
+                            label="変化後の値をもとに計算"
+                            id="calc-occupation-point-based-on-current-status"
+                            onClick={() => this.set_calc_occupation_point_based_on_current_status_flag(!this.state.calc_occupation_point_based_on_current_status)}
+                        />
+                        <h5>
+                            <span>趣味ポイント</span>
+                            <span>(/{digit(max_hobby_point, 3)})</span>
+                        </h5>
                         <Form.Control
                             as="input"
                             value={this.state.hobby_point}
                             onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_hobby_point(e.currentTarget.value)}
+                        />
+                        <Form.Check
+                            custom
+                            label="変化後の値をもとに計算"
+                            id="calc-hobby-point-based-on-current-status"
+                            onClick={() => this.set_calc_hobby_point_based_on_current_status_flag(!this.state.calc_hobby_point_based_on_current_status)}
                         />
                     </div>
                 </div>
