@@ -177,8 +177,7 @@ type State = {
 
     occupation_point: string,
     hobby_point: string,
-    calc_occupation_point_based_on_current_status: boolean,
-    calc_hobby_point_based_on_current_status: boolean,
+    calc_point_based_on_current_status: boolean,
 
     skills: Skills
 }
@@ -249,8 +248,7 @@ export class App extends React.Component<Props, State> {
 
             occupation_point: "$EDU*4",
             hobby_point: "$INT*2",
-            calc_occupation_point_based_on_current_status: false,
-            calc_hobby_point_based_on_current_status: false,
+            calc_point_based_on_current_status: false,
 
             skills: default_skills(),
         }
@@ -399,15 +397,9 @@ export class App extends React.Component<Props, State> {
         });
     }
 
-    set_calc_occupation_point_based_on_current_status_flag(calc_occupation_point_based_on_current_status: boolean) {
+    set_calc_point_based_on_current_status_flag(calc_point_based_on_current_status: boolean) {
         this.setState({
-            calc_occupation_point_based_on_current_status
-        });
-    }
-
-    set_calc_hobby_point_based_on_current_status_flag(calc_hobby_point_based_on_current_status: boolean) {
-        this.setState({
-            calc_hobby_point_based_on_current_status
+            calc_point_based_on_current_status
         });
     }
 
@@ -448,13 +440,13 @@ export class App extends React.Component<Props, State> {
         const initial_vars = new Map<string, number>(active_status_order.map(status_kind => [status_kind.toLocaleUpperCase(), this.state.initial_status[status_kind]]));
         const current_vars = new Map<string, number>(active_status_order.map(status_kind => [status_kind.toLocaleUpperCase(), status[status_kind]]));
         const max_occupation_point = (() => {
-            if (this.state.calc_occupation_point_based_on_current_status)
+            if (this.state.calc_point_based_on_current_status)
                 return Math.ceil(DiceBot.exec(this.state.occupation_point, current_vars));
             else
                 return Math.ceil(DiceBot.exec(this.state.occupation_point, initial_vars));
         })();
         const max_hobby_point = (() => {
-            if (this.state.calc_hobby_point_based_on_current_status)
+            if (this.state.calc_point_based_on_current_status)
                 return Math.ceil(DiceBot.exec(this.state.hobby_point, current_vars));
             else
                 return Math.ceil(DiceBot.exec(this.state.hobby_point, initial_vars));
@@ -568,6 +560,14 @@ export class App extends React.Component<Props, State> {
                     <div className="controller" />
                 </div>
                 <div id="skill">
+                    <div>
+                        <Form.Check
+                            custom
+                            label="変化後の値をもとに計算"
+                            id="calc-point-based-on-current-status"
+                            onClick={() => this.set_calc_point_based_on_current_status_flag(!this.state.calc_point_based_on_current_status)}
+                        />
+                    </div>
                     <div className="skill-points">
                         <h5>
                             <span>職業ポイント</span>
@@ -578,12 +578,6 @@ export class App extends React.Component<Props, State> {
                             value={this.state.occupation_point}
                             onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_occupation_point(e.currentTarget.value)}
                         />
-                        <Form.Check
-                            custom
-                            label="変化後の値をもとに計算"
-                            id="calc-occupation-point-based-on-current-status"
-                            onClick={() => this.set_calc_occupation_point_based_on_current_status_flag(!this.state.calc_occupation_point_based_on_current_status)}
-                        />
                         <h5>
                             <span>趣味ポイント</span>
                             <span>(/{digit(max_hobby_point, 3)})</span>
@@ -592,12 +586,6 @@ export class App extends React.Component<Props, State> {
                             as="input"
                             value={this.state.hobby_point}
                             onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_hobby_point(e.currentTarget.value)}
-                        />
-                        <Form.Check
-                            custom
-                            label="変化後の値をもとに計算"
-                            id="calc-hobby-point-based-on-current-status"
-                            onClick={() => this.set_calc_hobby_point_based_on_current_status_flag(!this.state.calc_hobby_point_based_on_current_status)}
                         />
                     </div>
                     <div className="skill-list">
