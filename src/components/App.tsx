@@ -1,8 +1,11 @@
 import * as React from "react"
 import { Form, Button } from "react-bootstrap"
+import * as firebase from "firebase"
 import * as DiceBot from "model/DiceBot"
 
-type Props = {}
+type Props = {
+    strage: firebase.storage.Storage
+}
 
 const Unsettled = Symbol("Unsettled");
 type Unsettled = typeof Unsettled;
@@ -252,6 +255,8 @@ export class App extends React.Component<Props, State> {
 
             skills: default_skills(),
         }
+
+
     }
 
     set_name(name: string) {
