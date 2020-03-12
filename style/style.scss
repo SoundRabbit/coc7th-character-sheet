@@ -6,9 +6,6 @@ body {
 
 #app {
     display: grid;
-    grid-template-columns: max-content 1fr;
-    grid-template-rows: max-content max-content;
-    grid-template-areas: "profile status" "skill skill";
     column-gap: 1.5rem;
     row-gap: 1.5rem;
     padding: 1.5rem;
@@ -31,7 +28,7 @@ body {
 
     & > *:nth-child(2n) {
         display: grid;
-        grid-auto-columns: max-content;
+        grid-auto-columns: 1fr;
         grid-template-rows: max-content max-content;
         grid-auto-flow: column;
         column-gap: 1ch;
@@ -75,5 +72,21 @@ body {
             column-gap: 1ch;
             align-items: center;
         }
+    }
+}
+
+@media screen and (max-width: 1199px) {
+    #app {
+        grid-template-columns: 1fr;
+        grid-template-rows: max-content max-content max-content;
+        grid-template-areas: "profile" "status" "skill";
+    }
+}
+
+@media screen and (min-width: 1200px) {
+    #app {
+        grid-template-columns: 5fr 13fr;
+        grid-template-rows: max-content max-content;
+        grid-template-areas: "profile status" "skill skill";
     }
 }
