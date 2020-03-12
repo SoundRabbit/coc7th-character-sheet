@@ -139,6 +139,36 @@ export class App extends React.Component<Props, State> {
         }
     }
 
+    set_name(name: string) {
+        this.setState({
+            name
+        });
+    }
+
+    set_occupation(occupation: string) {
+        this.setState({
+            occupation
+        });
+    }
+
+    set_age(age: string) {
+        this.setState({
+            age
+        });
+    }
+
+    set_residence(residence: string) {
+        this.setState({
+            residence
+        });
+    }
+
+    set_birthplace(birthplace: string) {
+        this.setState({
+            birthplace
+        });
+    }
+
     roll_all_status() {
         const vars = new Map<string, number>();
         let initial_status = Object.assign({}, this.state.initial_status);
