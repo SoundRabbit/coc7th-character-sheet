@@ -202,6 +202,31 @@ export class App extends React.Component<Props, State> {
         }
     }
 
+    set_current_status(status_kind: ActiveStatusKind, maybe_status: string) {
+        const status = Number(maybe_status);
+        if (!isNaN(status)) {
+            this.setState({
+                current_status: Object.assign({}, this.state.current_status, { [status_kind]: status })
+            })
+        }
+    }
+
+    reset_current_status() {
+        this.setState({
+            current_status: {
+                str: Unsettled,
+                con: Unsettled,
+                siz: Unsettled,
+                dex: Unsettled,
+                app: Unsettled,
+                int: Unsettled,
+                edu: Unsettled,
+                pow: Unsettled,
+                luck: Unsettled,
+            }
+        });
+    }
+
     set_occupation_point(occupation_point: string) {
         this.setState({
             occupation_point
@@ -336,7 +361,10 @@ export class App extends React.Component<Props, State> {
                             onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_status_dice_roll(status_kind, e.currentTarget.value)}
                         />,
                         <Form.Control value={this.state.initial_status[status_kind].toString()} disabled />,
-                        <Form.Control value={status[status_kind].toString()} />,
+                        <Form.Control
+                            value={status[status_kind].toString()}
+                            onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_current_status(status_kind, e.currentTarget.value)}
+                        />,
                         <Form.Control value={status[status_kind].toString()} disabled />,
                         <Form.Control value={Math.ceil(status[status_kind] / 2).toString()} disabled />,
                         <Form.Control value={Math.ceil(status[status_kind] / 5).toString()} disabled />,
@@ -350,7 +378,7 @@ export class App extends React.Component<Props, State> {
                     </div>
                     <div className="controller" />
                     <div className="controller">
-                        <Button variant="danger">リセット</Button>
+                        <Button variant="danger" onClick={() => this.reset_current_status()}>リセット</Button>
                     </div>
                     <div className="controller" />
                     <div className="controller" />
