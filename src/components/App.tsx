@@ -246,6 +246,18 @@ export class App extends React.Component<Props, State> {
         const max_occupation_point = Math.ceil(DiceBot.exec(this.state.occupation_point, vars));
         const max_hobby_point = Math.ceil(DiceBot.exec(this.state.hobby_point, vars));
 
+        const digit = (x: number, d: number): string => {
+            if (x >= Math.pow(10, d)) {
+                return x.toString();
+            } else {
+                let filler = "";
+                for (let i = 0; i < d; i++) {
+                    filler += '0';
+                }
+                return (filler + x).slice(-d);
+            }
+        }
+
         console.log(vars.entries());
 
         return (
@@ -342,21 +354,7 @@ export class App extends React.Component<Props, State> {
                     <div className="skill-points">
                         <div>
                             <div>職業ポイント</div>
-                            <div>
-                                <span>（</span>
-                                <span></span>
-                                <span>/</span>
-                                <span>
-                                    {(() => {
-                                        if (max_occupation_point >= 1000) {
-                                            return max_occupation_point.toString();
-                                        } else {
-                                            return ("000" + max_occupation_point).slice(-3);
-                                        }
-                                    })()}
-                                </span>
-                                <span>）</span>
-                            </div>
+                            <div>(/{digit(max_occupation_point, 3)})</div>
                         </div>
                         <Form.Control
                             as="input"
@@ -365,21 +363,7 @@ export class App extends React.Component<Props, State> {
                         />
                         <div>
                             <div>趣味ポイント</div>
-                            <div>
-                                <span>（</span>
-                                <span></span>
-                                <span>/</span>
-                                <span>
-                                    {(() => {
-                                        if (max_hobby_point >= 1000) {
-                                            return max_hobby_point.toString();
-                                        } else {
-                                            return ("000" + max_hobby_point).slice(-3);
-                                        }
-                                    })()}
-                                </span>
-                                <span>）</span>
-                            </div>
+                            <div>(/{digit(max_hobby_point, 3)})</div>
                         </div>
                         <Form.Control
                             as="input"
