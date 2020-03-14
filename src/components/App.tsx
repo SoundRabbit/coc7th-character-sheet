@@ -1,6 +1,8 @@
 import * as React from "react"
 import { Form, Button } from "react-bootstrap"
 import * as firebase from "firebase"
+import * as Url from "url-parse"
+import * as Uuid from "uuid"
 import * as DiceBot from "model/DiceBot"
 
 type Props = {
@@ -155,6 +157,9 @@ const current_status = (initial_status: ActiveStatus<number>, current_status: Ac
 }
 
 type State = {
+    //キャラクタID
+    character_id: string,
+
     // 探索者の基本情報
     name: string,
     occupation: string,
@@ -189,7 +194,22 @@ export class App extends React.Component<Props, State> {
     state: State
     constructor(props: Props) {
         super(props)
+        const query = (() => {
+            const query = Url(location.href).query;
+            if (typeof query == "string") {
+                const query_t = (query as string).slice(1).split("&").map(r => r.split("="));
+                const res = new Map<string, string | undefined>();
+                for (const r of query_t) {
+                    res.set(r[0], r[1]);
+                }
+                return res;
+            } else {
+                return new Map(Object.entries(query));
+            }
+        })();
         this.state = {
+            character_id: query.get("character-id") || Uuid.v4(),
+
             name: "",
             occupation: "",
             age: "",
@@ -255,8 +275,6 @@ export class App extends React.Component<Props, State> {
 
             skills: default_skills(),
         }
-
-
     }
 
     set_name(name: string) {
