@@ -751,9 +751,17 @@ export class App extends React.Component<Props, State> {
                     <div>SAN</div>
                     <div>
                         <div>初期値</div>
-                        <Form.Control value={initialSan.toString()} disabled />
+                        <Form.Control
+                            value={initialSan.toString()}
+                            disabled
+                            type="number"
+                        />
                         <div>変化後</div>
-                        <Form.Control value={currentSan.toString()} onInput={(e: React.FormEvent<HTMLInputElement>) => this.setCurrentSan(e.currentTarget.value)} />
+                        <Form.Control
+                            value={currentSan.toString()}
+                            onInput={(e: React.FormEvent<HTMLInputElement>) => this.setCurrentSan(e.currentTarget.value)}
+                            type="number"
+                        />
                     </div>
                 </div>
                 <div id="status">
@@ -768,6 +776,7 @@ export class App extends React.Component<Props, State> {
 
                     {activeStatusOrder.map(tag => {
                         const statusProps = this.state.activeStatus[tag];
+                        const errorOnDiceBot = isNaN(statusProps.initialStatus);
                         return [
                             <div>{tag.toLocaleUpperCase()}</div>,
                             <Form.Check
@@ -783,11 +792,13 @@ export class App extends React.Component<Props, State> {
                                 value={statusProps.locked ? statusProps.initialStatus.toString() : statusProps.diceRoll}
                                 disabled={statusProps.locked}
                                 onInput={(e: React.FormEvent<HTMLInputElement>) => this.setStatusDiceRoll(tag, e.currentTarget.value)}
+                                className={errorOnDiceBot ? "text-danger" : ""}
                             />,
                             <Form.Control value={statusProps.initialStatus.toString()} disabled />,
                             <Form.Control
                                 value={status[tag].toString()}
                                 onInput={(e: React.FormEvent<HTMLInputElement>) => this.setCurrentStatus(tag, e.currentTarget.value)}
+                                type="number"
                             />,
                             <Form.Control value={status[tag].toString()} disabled />,
                             <Form.Control value={Math.ceil(status[tag] / 2).toString()} disabled />,
@@ -879,14 +890,17 @@ export class App extends React.Component<Props, State> {
                                     <Form.Control
                                         value={skill.occupationPoint.toString()}
                                         onInput={(e: React.FormEvent<HTMLInputElement>) => this.setSkillOccupationPoint(skill, e.currentTarget.value)}
+                                        type="number"
                                     />,
                                     <Form.Control
                                         value={skill.hobbyPoint.toString()}
                                         onInput={(e: React.FormEvent<HTMLInputElement>) => this.setSkillHobbyPoint(skill, e.currentTarget.value)}
+                                        type="number"
                                     />,
                                     <Form.Control
                                         value={skill.otherPoint.toString()}
                                         onInput={(e: React.FormEvent<HTMLInputElement>) => this.setSkillOtherPoint(skill, e.currentTarget.value)}
+                                        type="number"
                                     />,
                                     <Form.Control
                                         value={skill.initialPoint.toString()}
