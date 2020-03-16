@@ -532,7 +532,48 @@ export class App extends React.Component<Props, State> {
         }
     }
 
+    loadFromLocal() {
+        const dummyElement = document.createElement("input");
+        dummyElement.type = "file";
+        dummyElement.accept = ".json, text/plain";
+        dummyElement.onchange = (e: Event) => {
+            const target = e.target as HTMLInputElement;
+            if (!target.files) { return; }
+
+            const file = target.files[0];
+
+            const fileReader = new FileReader();
+            fileReader.onload = () => {
+                const result = fileReader.result;
+                if (typeof result == "string") {
+                    this.loadFromJson(result);
+                }
+            }
+            fileReader.readAsText(file);
+        }
+        dummyElement.click();
+    }
+
     saveToFirebaseStrage() {
+        // format = "raw" | "base64" | "base64url" | "data_url"
+        this.props.strage.ref(`character-sheet/${this.state.characterId}`).putString(this.saveData(), "raw")
+            .then(() => {
+                location.href = Url(location.href).pathname + `?character-id=${this.state.characterId}`;
+            })
+    }
+
+    saveToLocal() {
+        const dummyElement = document.createElement("a");
+        dummyElement.href = "data:text/plain," + encodeURIComponent(this.saveData());
+        dummyElement.download = this.state.name + ".json";
+        dummyElement.style.display = "none";
+        dummyElement.click();
+        document.appendChild(dummyElement);
+        dummyElement.click();
+        document.removeChild(dummyElement);
+    }
+
+    saveData(): string {
         const saveData: any = {};
         saveData["name"] = this.state.name;
         saveData["occupation"] = this.state.occupation;
@@ -588,11 +629,7 @@ export class App extends React.Component<Props, State> {
             }
         }
 
-        // format = "raw" | "base64" | "base64url" | "data_url"
-        this.props.strage.ref(`character-sheet/${this.state.characterId}`).putString(JSON.stringify(saveData), "raw")
-            .then(() => {
-                location.href = Url(location.href).pathname + `?character-id=${this.state.characterId}`;
-            })
+        return JSON.stringify(saveData);
     }
 
     render(): JSX.Element | null {
@@ -675,8 +712,12 @@ export class App extends React.Component<Props, State> {
         return (
             <div id="app">
                 <div id="profile">
-                    <Button variant="success" onClick={() => this.saveToFirebaseStrage()}>保存</Button>
+                    <Button variant="primary" onClick={() => this.saveToFirebaseStrage()}>保存</Button>
                     <div>現在、パスワードによる保護には対応していません。</div>
+                    <Button variant="secondary" onClick={() => this.saveToLocal()}>ダウンロード</Button>
+                    <div>使用している端末に、アップロード可能なキャラクタシートのデータを保存します。</div>
+                    <Button variant="outline-secondary" onClick={() => this.loadFromLocal()}>アップロード</Button>
+                    <div>ダウンロードしたキャラクタシートのデータを読み込みます。</div>
                     <div>PC名</div>
                     <Form.Control value={this.state.name} onInput={(e: React.FormEvent<HTMLInputElement>) => this.setName(e.currentTarget.value)} />
                     <div>職業</div>
