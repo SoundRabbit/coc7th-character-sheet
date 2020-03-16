@@ -2,29 +2,19 @@ export type Decoder<T> = (x: any) => T
 
 export type ErrorType = "TypeMissmatch";
 
-export class Error<T> {
-    private __description: T;
-    private __errorType: ErrorType;
-
-    constructor(description: T, errorType?: ErrorType) {
-        this.__description = description;
-        this.__errorType = errorType || "TypeMissmatch";
-    }
-
-    get description(): T {
-        return this.__description;
-    }
-
-    get errorType(): ErrorType {
-        return this.__errorType;
-    }
+export type Error = {
+    type: ErrorType,
+    at: string,
+    description: string,
 }
+
+const error = (type: ErrorType, at: string, description: string): Error => ({ type, at, description })
 
 export const string: Decoder<string> = (x: any): string => {
     if (typeof x == "string") {
         return x;
     } else {
-        throw new Error(`${x} is not a string value.`);
+        throw error("TypeMissmatch", x, `${x} is not a string.`);
     }
 }
 
@@ -32,7 +22,7 @@ export const number: Decoder<number> = (x: any): number => {
     if (typeof x == "number") {
         return x;
     } else {
-        throw new Error(`${x} is not a number.`);
+        throw error("TypeMissmatch", x, `${x} is not a number.`);
     }
 }
 
@@ -40,7 +30,7 @@ export const boolean: Decoder<boolean> = (x: any): boolean => {
     if (typeof x == "boolean") {
         return x;
     } else {
-        throw new Error(`${x} is not a boolean.`);
+        throw error("TypeMissmatch", x, `${x} is not a boolean.`);
     }
 }
 
@@ -52,15 +42,23 @@ export const object = <T>(decoders: { [P in keyof T]: Decoder<T[P]> | [string, D
                 const maybeDecoder = decoders[key];
                 if (Array.isArray(maybeDecoder)) {
                     const [fieladName, decoder] = maybeDecoder;
-                    result[key] = decoder(x[fieladName]);
+                    try {
+                        result[key] = decoder(x[fieladName]);
+                    } catch (e) {
+                        throw error("TypeMissmatch", `{${fieladName}:${e.at}}`, e.description);
+                    }
                 } else {
-                    // VSCodeでエラー表示が消えないのでanyにキャストして無理やり消去
-                    result[key] = (maybeDecoder as any)(x[key]);
+                    try {
+                        // VSCodeでエラー表示が消えないのでanyにキャストして無理やり消去
+                        result[key] = (maybeDecoder as any)(x[key]);
+                    } catch (e) {
+                        throw error("TypeMissmatch", `{${key}:${e.at}}`, e.description);
+                    }
                 }
             }
             return result;
         } else {
-            throw new Error(`${x} is not an object.`);
+            throw error("TypeMissmatch", x, `${x} is not an object.`);
         }
     }
 }
@@ -68,9 +66,16 @@ export const object = <T>(decoders: { [P in keyof T]: Decoder<T[P]> | [string, D
 export const array = <T>(decoder: Decoder<T>): Decoder<Array<T>> => {
     return (x: any): Array<T> => {
         if (Array.isArray(x)) {
-            return x.map(decoder);
+            return x.map((v, i) => {
+                try {
+                    return decoder(v);
+                } catch (e) {
+                    throw error("TypeMissmatch", `[${i}]${e.at}`, e.description);
+                }
+            })
+                ;
         } else {
-            throw new Error(`${x} is not an array.`);
+            throw error("TypeMissmatch", `${x}`, `${x} is not an array.`);
         }
     }
 }
@@ -91,9 +96,15 @@ export const tuple = <Tuple extends Array<any>>(decoders: DecoderTuple<Tuple>): 
             // Thease mean:
             // decoders.map((decoder, index) => decoder(x[index]))
             const __decoders: Array<Decoder<any>> = decoders as any;
-            return (__decoders.map((decoder: any, index) => (decoder(x[index])))) as Tuple;
+            return (__decoders.map((decoder: any, index) => {
+                try {
+                    return decoder(x[index]);
+                } catch (e) {
+                    throw error("TypeMissmatch", `[${index}]${e.at}`, e.description);
+                }
+            })) as Tuple;
         } else {
-            throw new Error(`${x} is not an array.`);
+            throw error("TypeMissmatch", `${x}`, `${x} is not an array.`);
         }
     }
 }
@@ -117,7 +128,7 @@ export const convertableToNumber: Decoder<number> = (x: any): number => {
     if (isNaN(r)) {
         return r;
     } else {
-        throw new Error(`${x} is not convertable to number.`);
+        throw error("TypeMissmatch", `${x}`, `${x} is not convertable to number.`);
     }
 }
 
@@ -126,7 +137,7 @@ export const convertableToMap = <K, V>(keyMapper: (key: string) => K, decoder: D
         if (typeof x == "object" && !Array.isArray(x)) {
             return new Map(Object.entries(x).map(([k, v]) => ([keyMapper(k), decoder(v)])));
         } else {
-            throw new Error(`${x} is not convertable to Map.`);
+            throw error("TypeMissmatch", `${x}`, `${x} is not convertable to Map.`);
         }
     }
 }
@@ -145,7 +156,7 @@ export const tries = <T>(decoders: Decoder<T>[]): Decoder<T> => {
                 errs.push(err);
             }
         }
-        throw errs;
+        throw error("TypeMissmatch", errs.map(({ at }) => at).join(";"), errs.map(({ description }) => description).join(";"));
     }
 }
 
