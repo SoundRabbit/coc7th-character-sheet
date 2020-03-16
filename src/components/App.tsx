@@ -4,6 +4,7 @@ import * as firebase from "firebase"
 import * as Url from "url-parse"
 import * as Uuid from "uuid"
 import * as DiceBot from "model/DiceBot"
+import * as Decoder from "model/Decoder"
 
 type Props = {
     strage: firebase.storage.Storage
@@ -12,29 +13,43 @@ type Props = {
 const Unsettled = Symbol("Unsettled");
 type Unsettled = typeof Unsettled;
 
-type ActiveStatus<T> = {
-    str: T,
-    con: T,
-    siz: T,
-    dex: T,
-    app: T,
-    int: T,
-    edu: T,
-    pow: T,
-    luck: T,
+export type ActiveStatusOrder = ["str", "con", "siz", "dex", "app", "int", "edu", "pow", "luck"];
+export const activeStatusOrder: ActiveStatusOrder = ["str", "con", "siz", "dex", "app", "int", "edu", "pow", "luck"];
+
+type Pop<T extends Array<any>> = ((...a: T) => never) extends ((head: any, ...others: infer Others) => never) ? Others : []
+type Tags<T extends Array<any>, Result = T[0]> = {
+    "done": Result,
+    "continue": Tags<Pop<T>, Result | T[1]>
+}[T["length"] extends 1 ? "done" : "continue"];
+type Struct<T extends string | number, U> = {
+    [P in T]: U
 }
 
-type ActiveStatusKind = "str" | "con" | "siz" | "dex" | "app" | "int" | "edu" | "pow" | "luck";
+export type ActiveStatusTag = Tags<ActiveStatusOrder>;
+export type ActiveStatus = Struct<ActiveStatusTag, ActiveStatusProps>;
+export type ActiveStatusValue = Struct<ActiveStatusTag, number>;
 
-const active_status_order: ActiveStatusKind[] = ["str", "con", "siz", "dex", "app", "int", "edu", "pow", "luck"];
+export type ActiveStatusProps = {
+    diceRoll: string,
+    locked: boolean,
+    initialStatus: number,
+    currentStatus: number | null,
+}
+
+const ActiveStatusProps = (diceRoll: string) => ({
+    diceRoll: diceRoll,
+    locked: false,
+    initialStatus: 0,
+    currentStatus: null,
+})
 
 type Skill = {
     tag: "Skill",
     name: symbol | string,
-    occupation_point: number,
-    hobby_point: number,
-    other_point: number,
-    initial_point: number | string,
+    occupationPoint: number,
+    hobbyPoint: number,
+    otherPoint: number,
+    initialPoint: number | string,
 }
 
 type SkillGroupe = {
@@ -45,13 +60,13 @@ type SkillGroupe = {
 
 type Skills = (Skill | SkillGroupe)[];
 
-const Skill = (name: symbol | string, initial_point: number | string): Skill => ({
+const Skill = (name: symbol | string, initialPoint: number | string): Skill => ({
     tag: "Skill",
     name: name,
-    occupation_point: 0,
-    hobby_point: 0,
-    other_point: 0,
-    initial_point: initial_point
+    occupationPoint: 0,
+    hobbyPoint: 0,
+    otherPoint: 0,
+    initialPoint: initialPoint
 });
 
 const SkillGroupe = (name: symbol | string, skills: Skill[]): SkillGroupe => ({
@@ -60,7 +75,7 @@ const SkillGroupe = (name: symbol | string, skills: Skill[]): SkillGroupe => ({
     skills: skills
 })
 
-const default_skills = (): Skills => ([
+const defaultSkills = (): Skills => ([
     Skill(Symbol.for("威圧"), 15),
     Skill(Symbol.for("言いくるめ"), 5),
     Skill(Symbol.for("医学"), 1),
@@ -137,25 +152,6 @@ const default_skills = (): Skills => ([
     ]),
 ])
 
-const number_from_current_status = (initial_status: number, current_status: Unsettled | number): number => {
-    if (current_status == Unsettled) {
-        return initial_status;
-    } else {
-        return current_status;
-    }
-}
-
-const current_status = (initial_status: ActiveStatus<number>, current_status: ActiveStatus<Unsettled | number>): ActiveStatus<number> => {
-    let status = Object.assign({}, initial_status);
-    for (const status_kind of active_status_order) {
-        const cs = current_status[status_kind];
-        if (cs !== Unsettled) {
-            initial_status = Object.assign(status, { [status_kind]: cs });
-        }
-    }
-    return status;
-}
-
 type State = {
     //キャラクタID
     character_id: string,
@@ -168,24 +164,14 @@ type State = {
     residence: string,
     birthplace: string,
 
-    //能力値ダイス
-    dice_roll: ActiveStatus<string>,
+    activeStatus: ActiveStatus,
+    currentHp: number | null,
+    currentSan: number | null,
+    currentMp: number | null,
 
-    //出目固定
-    locked: ActiveStatus<boolean>,
-
-    // 初期能力値
-    initial_status: ActiveStatus<number>,
-
-    // 変化後能力値
-    current_status: ActiveStatus<Unsettled | number>,
-    current_hp: Unsettled | number,
-    current_san: Unsettled | number,
-    current_mp: Unsettled | number,
-
-    occupation_point: string,
-    hobby_point: string,
-    calc_point_based_on_current_status: boolean,
+    occupationPoint: string,
+    hobbyPoint: string,
+    calcSkillPointBasedOnCurrentStatus: boolean,
 
     skills: Skills
 }
@@ -217,216 +203,199 @@ export class App extends React.Component<Props, State> {
             residence: "",
             birthplace: "",
 
-            dice_roll: {
-                str: "3D6*5",
-                con: "3D6*5",
-                siz: "(2D6+6)*5",
-                dex: "3D6*5",
-                app: "3D6*5",
-                int: "(2D6+6)*5",
-                edu: "(2D6+6)*5",
-                pow: "3D6*5",
-                luck: "3D6*5",
+            activeStatus: {
+                str: ActiveStatusProps("3D6*5"),
+                con: ActiveStatusProps("3D6*5"),
+                siz: ActiveStatusProps("(2d6+6))*5"),
+                dex: ActiveStatusProps("3D6*5"),
+                app: ActiveStatusProps("3D6*5"),
+                int: ActiveStatusProps("(2d6+6))*5"),
+                edu: ActiveStatusProps("(2d6+6))*5"),
+                pow: ActiveStatusProps("3D6*5"),
+                luck: ActiveStatusProps("3D6*5"),
             },
 
-            locked: {
-                str: false,
-                con: false,
-                siz: false,
-                dex: false,
-                app: false,
-                int: false,
-                edu: false,
-                pow: false,
-                luck: false,
-            },
+            currentHp: null,
+            currentSan: null,
+            currentMp: null,
 
-            initial_status: {
-                str: 0,
-                con: 0,
-                siz: 0,
-                dex: 0,
-                app: 0,
-                int: 0,
-                edu: 0,
-                pow: 0,
-                luck: 0,
-            },
+            occupationPoint: "$EDU*4",
+            hobbyPoint: "$INT*2",
+            calcSkillPointBasedOnCurrentStatus: false,
 
-            current_status: {
-                str: Unsettled,
-                con: Unsettled,
-                siz: Unsettled,
-                dex: Unsettled,
-                app: Unsettled,
-                int: Unsettled,
-                edu: Unsettled,
-                pow: Unsettled,
-                luck: Unsettled,
-            },
-
-            current_hp: Unsettled,
-            current_san: Unsettled,
-            current_mp: Unsettled,
-
-            occupation_point: "$EDU*4",
-            hobby_point: "$INT*2",
-            calc_point_based_on_current_status: false,
-
-            skills: default_skills(),
+            skills: defaultSkills(),
         }
+
+        this.props.strage.ref(`character-sheet/${this.state.character_id}`).getDownloadURL().then(url => {
+            const xhr = new XMLHttpRequest();
+            xhr.responseType = "json";
+            xhr.onload = _ => {
+                if (xhr.response) {
+
+                }
+            }
+            xhr.open("GET", url);
+            xhr.send();
+        }).catch(_ => { });
     }
 
-    set_name(name: string) {
+    setName(name: string) {
         this.setState({
             name
         });
     }
 
-    set_occupation(occupation: string) {
+    setOccupation(occupation: string) {
         this.setState({
             occupation
         });
     }
 
-    set_age(age: string) {
+    setAge(age: string) {
         this.setState({
             age
         });
     }
 
-    set_sex(sex: string) {
+    setSex(sex: string) {
         this.setState({
             sex
         });
     }
 
-    set_residence(residence: string) {
+    setResidence(residence: string) {
         this.setState({
             residence
         });
     }
 
-    set_birthplace(birthplace: string) {
+    setBirthplace(birthplace: string) {
         this.setState({
             birthplace
         });
     }
 
-    set_current_hp(maybe_current_hp: string) {
-        const current_hp = Number(maybe_current_hp);
-        if (!isNaN(current_hp)) {
+    setCurrentHp(maybeCurrentHp: string) {
+        const currentHp = Number(maybeCurrentHp);
+        if (!isNaN(currentHp)) {
             this.setState({
-                current_hp
+                currentHp
             });
         }
     }
 
-    set_current_mp(maybe_current_mp: string) {
-        const current_mp = Number(maybe_current_mp);
-        if (!isNaN(current_mp)) {
+    setCurrentMp(maybeCurrentMp: string) {
+        const currentMp = Number(maybeCurrentMp);
+        if (!isNaN(currentMp)) {
             this.setState({
-                current_mp
+                currentMp
             });
         }
     }
 
-    set_current_san(maybe_current_san: string) {
-        const current_san = Number(maybe_current_san);
-        if (!isNaN(current_san)) {
+    setCurrentSan(maybeCurrentSan: string) {
+        const currentSan = Number(maybeCurrentSan);
+        if (!isNaN(currentSan)) {
             this.setState({
-                current_san
+                currentSan
             });
         }
     }
 
-    roll_all_status() {
+    rollAllStatus() {
         const vars = new Map<string, number>();
-        let initial_status = Object.assign({}, this.state.initial_status);
-        for (const status_kind of active_status_order) {
-            if (!this.state.locked[status_kind]) {
-                initial_status = Object.assign(initial_status, { [status_kind]: DiceBot.exec(this.state.dice_roll[status_kind], vars) });
+        const activeStatus = Object.assign({}, this.state.activeStatus);
+        for (const statusKind in activeStatus) {
+            const activeStatusProps = activeStatus[statusKind as ActiveStatusTag];
+            if (!activeStatusProps.locked) {
+                activeStatusProps.initialStatus = DiceBot.exec(activeStatusProps.diceRoll, vars);
             }
         }
         this.setState({
-            initial_status
+            activeStatus
         });
     }
 
-    reset_all_status() {
+    resetAllStatus() {
+        const activeStatus = Object.assign({}, this.state.activeStatus);
+        activeStatus.app.diceRoll = "3D6*5";
+        activeStatus.con.diceRoll = "3D6*5";
+        activeStatus.dex.diceRoll = "3D6*5";
+        activeStatus.edu.diceRoll = "(2D6+6)*5";
+        activeStatus.int.diceRoll = "(2D6+6)*5";
+        activeStatus.luck.diceRoll = "3D6*5";
+        activeStatus.pow.diceRoll = "3D6*5";
+        activeStatus.siz.diceRoll = "(2D6+6)*5";
+        activeStatus.str.diceRoll = "3D6*5";
         this.setState({
-            dice_roll: {
-                str: "3D6*5",
-                con: "3D6*5",
-                siz: "(2D6+6)*5",
-                dex: "3D6*5",
-                app: "3D6*5",
-                int: "(2D6+6)*5",
-                edu: "(2D6+6)*5",
-                pow: "3D6*5",
-                luck: "3D6*5",
-            }
+            activeStatus
         });
     }
 
-    set_status_locked_status(status_kind: ActiveStatusKind, locked_status: boolean) {
+    setStatusLockedStatus(statusKind: ActiveStatusTag, lockedStatus: boolean) {
+        const activeStatus = Object.assign({}, this.state.activeStatus);
+        activeStatus[statusKind].locked = lockedStatus;
         this.setState({
-            locked: Object.assign({}, this.state.locked, { [status_kind]: locked_status })
+            activeStatus
         });
     }
 
-    set_status_dice_roll(status_kind: ActiveStatusKind, dice_roll: string) {
-        if (!this.state.locked[status_kind]) {
+    setStatusDiceRoll(statusKind: ActiveStatusTag, diceRoll: string) {
+        if (!this.state.activeStatus[statusKind].locked) {
+            const activeStatus = Object.assign({}, this.state.activeStatus);
+            activeStatus[statusKind].diceRoll = diceRoll;
             this.setState({
-                dice_roll: Object.assign({}, this.state.dice_roll, { [status_kind]: dice_roll })
+                activeStatus
             });
         }
     }
 
-    set_current_status(status_kind: ActiveStatusKind, maybe_status: string) {
-        const status = Number(maybe_status);
+    setCurrentStatus(statusKind: ActiveStatusTag, maybeStatus: string) {
+        const status = Number(maybeStatus);
         if (!isNaN(status)) {
+            const activeStatus = Object.assign({}, this.state.activeStatus);
+            activeStatus[statusKind].currentStatus = status;
             this.setState({
-                current_status: Object.assign({}, this.state.current_status, { [status_kind]: status })
-            })
+                activeStatus
+            });
         }
     }
 
-    reset_current_status() {
+    resetCurrentStatus() {
+        const activeStatus = Object.assign({}, this.state.activeStatus);
+        activeStatus.app.currentStatus = null;
+        activeStatus.con.currentStatus = null;
+        activeStatus.dex.currentStatus = null;
+        activeStatus.edu.currentStatus = null;
+        activeStatus.int.currentStatus = null;
+        activeStatus.luck.currentStatus = null;
+        activeStatus.pow.currentStatus = null;
+        activeStatus.siz.currentStatus = null;
+        activeStatus.str.currentStatus = null;
         this.setState({
-            current_status: {
-                str: Unsettled,
-                con: Unsettled,
-                siz: Unsettled,
-                dex: Unsettled,
-                app: Unsettled,
-                int: Unsettled,
-                edu: Unsettled,
-                pow: Unsettled,
-                luck: Unsettled,
-            }
+            activeStatus
         });
     }
 
-    set_occupation_point(occupation_point: string) {
+    setOccupationPoint(occupationPoint: string) {
         this.setState({
-            occupation_point
+            occupationPoint
         });
     }
 
-    set_hobby_point(hobby_point: string) {
+    setHobbyPoint(hobbyPoint: string) {
         this.setState({
-            hobby_point
+            hobbyPoint
         });
     }
 
-    set_calc_point_based_on_current_status_flag(calc_point_based_on_current_status: boolean) {
+    setCalcSkillPointBasedOnCurrentStatusFlag(calcSkillPointBasedOnCurrentStatus: boolean) {
         this.setState({
-            calc_point_based_on_current_status
+            calcSkillPointBasedOnCurrentStatus
         });
     }
 
-    set_skill_name(skill: Skill, name: string) {
+    setSkillName(skill: Skill, name: string) {
         const skills = this.state.skills.concat();
         skill.name = name;
         this.setState({
@@ -434,56 +403,56 @@ export class App extends React.Component<Props, State> {
         });
     }
 
-    set_skill_occupation_point(skill: Skill, maybe_point: string) {
-        const point = Number(maybe_point);
+    setSkillOccupationPoint(skill: Skill, maybePoint: string) {
+        const point = Number(maybePoint);
         if (!isNaN(point)) {
             const skills = this.state.skills.concat();
-            skill.occupation_point = point;
+            skill.occupationPoint = point;
             this.setState({
                 skills
             });
         }
     }
 
-    set_skill_hobby_point(skill: Skill, maybe_point: string) {
-        const point = Number(maybe_point);
+    setSkillHobbyPoint(skill: Skill, maybePoint: string) {
+        const point = Number(maybePoint);
         if (!isNaN(point)) {
             const skills = this.state.skills.concat();
-            skill.hobby_point = point;
+            skill.hobbyPoint = point;
             this.setState({
                 skills
             });
         }
     }
 
-    set_skill_other_point(skill: Skill, maybe_point: string) {
-        const point = Number(maybe_point);
+    setSkillOtherPoint(skill: Skill, maybePoint: string) {
+        const point = Number(maybePoint);
         if (!isNaN(point)) {
             const skills = this.state.skills.concat();
-            skill.other_point = point;
+            skill.otherPoint = point;
             this.setState({
                 skills
             });
         }
     }
 
-    set_skill_initial_point(skill: Skill, point: string) {
+    setSkillInitialPoint(skill: Skill, point: string) {
         const skills = this.state.skills.concat();
-        skill.initial_point = point;
+        skill.initialPoint = point;
         this.setState({
             skills
         });
     }
 
-    add_skill_to_skill_groupe(skill_groupe: SkillGroupe) {
+    addSkillToSkillGroupe(skillGroupe: SkillGroupe) {
         const skills = this.state.skills.concat();
-        skill_groupe.skills.push(Skill("", 0));
+        skillGroupe.skills.push(Skill("", 0));
         this.setState({
             skills
         });
     }
 
-    remove_skill(parent: Skills | Skill[], skill: Skill) {
+    removeSkill(parent: Skills | Skill[], skill: Skill) {
         const index = parent.indexOf(skill);
         if (index >= 0) {
             parent.splice(index, 1);
@@ -494,17 +463,23 @@ export class App extends React.Component<Props, State> {
     }
 
     render(): JSX.Element | null {
-        const status = current_status(this.state.initial_status, this.state.current_status);
+        const activeStatus = this.state.activeStatus;
 
-        const initial_hp = Math.ceil((status.con + status.siz) / 10);
-        const initial_san = status.pow;
-        const initial_mp = Math.ceil(status.pow / 5);
+        const status = {} as ActiveStatusValue;
+        for (const tag of activeStatusOrder) {
+            const statusProps = activeStatus[tag];
+            status[tag] = typeof statusProps.currentStatus == "number" ? statusProps.currentStatus : statusProps.initialStatus;
+        }
 
-        const current_hp = number_from_current_status(initial_hp, this.state.current_hp);
-        const current_san = number_from_current_status(initial_san, this.state.current_san);
-        const current_mp = number_from_current_status(initial_mp, this.state.current_mp);
+        const initialHp = Math.ceil((status.con + status.siz) / 10);
+        const initialSan = status.pow;
+        const initialMp = Math.ceil(status.pow / 5);
 
-        const move_rate = (() => {
+        const currentHp = typeof this.state.currentHp == "number" ? this.state.currentHp : initialHp;
+        const currentSan = typeof this.state.currentSan == "number" ? this.state.currentSan : initialSan;
+        const currentMp = typeof this.state.currentMp == "number" ? this.state.currentMp : initialMp;
+
+        const moverate = (() => {
             if (status.str < status.siz && status.dex < status.siz) {
                 return 7;
             } else if (status.str > status.siz && status.dex > status.siz) {
@@ -513,7 +488,7 @@ export class App extends React.Component<Props, State> {
                 return 8;
             }
         })();
-        const damage_bonus = (() => {
+        const damagebonus = (() => {
             if (status.str + status.siz >= 165) {
                 return "+1d6";
             } else if (status.str + status.siz >= 125) {
@@ -527,19 +502,19 @@ export class App extends React.Component<Props, State> {
             }
         })();
 
-        const initial_vars = new Map<string, number>(active_status_order.map(status_kind => [status_kind.toLocaleUpperCase(), this.state.initial_status[status_kind]]));
-        const current_vars = new Map<string, number>(active_status_order.map(status_kind => [status_kind.toLocaleUpperCase(), status[status_kind]]));
-        const max_occupation_point = (() => {
-            if (this.state.calc_point_based_on_current_status)
-                return Math.ceil(DiceBot.exec(this.state.occupation_point, current_vars));
+        const initialVars = new Map<string, number>(activeStatusOrder.map(statusKind => [statusKind.toLocaleUpperCase(), activeStatus[statusKind].initialStatus]));
+        const currentVars = new Map<string, number>(activeStatusOrder.map(statusKind => [statusKind.toLocaleUpperCase(), status[statusKind]]));
+        const maxOccupationPoint = (() => {
+            if (this.state.calcSkillPointBasedOnCurrentStatus)
+                return Math.ceil(DiceBot.exec(this.state.occupationPoint, currentVars));
             else
-                return Math.ceil(DiceBot.exec(this.state.occupation_point, initial_vars));
+                return Math.ceil(DiceBot.exec(this.state.occupationPoint, initialVars));
         })();
-        const max_hobby_point = (() => {
-            if (this.state.calc_point_based_on_current_status)
-                return Math.ceil(DiceBot.exec(this.state.hobby_point, current_vars));
+        const maxHobbyPoint = (() => {
+            if (this.state.calcSkillPointBasedOnCurrentStatus)
+                return Math.ceil(DiceBot.exec(this.state.hobbyPoint, currentVars));
             else
-                return Math.ceil(DiceBot.exec(this.state.hobby_point, initial_vars));
+                return Math.ceil(DiceBot.exec(this.state.hobbyPoint, initialVars));
         })();
 
         const digit = (x: number, d: number): string => {
@@ -554,12 +529,12 @@ export class App extends React.Component<Props, State> {
             }
         }
 
-        const [used_occupation_point, used_hobby_point] = this.state.skills.reduce((pre, skill) => {
+        const [usedOccupationPoint, usedHobbyPoint] = this.state.skills.reduce((pre, skill) => {
             switch (skill.tag) {
                 case "Skill":
-                    return [pre[0] + skill.occupation_point, pre[1] + skill.hobby_point];
+                    return [pre[0] + skill.occupationPoint, pre[1] + skill.hobbyPoint];
                 case "SkillGroupe":
-                    const cur = skill.skills.reduce((pre, skill) => [pre[0] + skill.occupation_point, pre[1] + skill.hobby_point], [0, 0]);
+                    const cur = skill.skills.reduce((pre, skill) => [pre[0] + skill.occupationPoint, pre[1] + skill.hobbyPoint], [0, 0]);
                     return [pre[0] + cur[0], pre[1] + cur[1]];
             }
         }, [0, 0]);
@@ -568,41 +543,41 @@ export class App extends React.Component<Props, State> {
             <div id="app">
                 <div id="profile">
                     <div>PC名</div>
-                    <Form.Control value={this.state.name} onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_name(e.currentTarget.value)} />
+                    <Form.Control value={this.state.name} onInput={(e: React.FormEvent<HTMLInputElement>) => this.setName(e.currentTarget.value)} />
                     <div>職業</div>
-                    <Form.Control value={this.state.occupation} onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_occupation(e.currentTarget.value)} />
+                    <Form.Control value={this.state.occupation} onInput={(e: React.FormEvent<HTMLInputElement>) => this.setOccupation(e.currentTarget.value)} />
                     <div>年齢</div>
-                    <Form.Control value={this.state.age} onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_age(e.currentTarget.value)} />
+                    <Form.Control value={this.state.age} onInput={(e: React.FormEvent<HTMLInputElement>) => this.setAge(e.currentTarget.value)} />
                     <div>性別</div>
-                    <Form.Control value={this.state.sex} onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_sex(e.currentTarget.value)} />
+                    <Form.Control value={this.state.sex} onInput={(e: React.FormEvent<HTMLInputElement>) => this.setSex(e.currentTarget.value)} />
                     <div>住所</div>
-                    <Form.Control value={this.state.residence} onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_residence(e.currentTarget.value)} />
+                    <Form.Control value={this.state.residence} onInput={(e: React.FormEvent<HTMLInputElement>) => this.setResidence(e.currentTarget.value)} />
                     <div>出身</div>
-                    <Form.Control value={this.state.birthplace} onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_birthplace(e.currentTarget.value)} />
+                    <Form.Control value={this.state.birthplace} onInput={(e: React.FormEvent<HTMLInputElement>) => this.setBirthplace(e.currentTarget.value)} />
                     <div>移動率</div>
-                    <Form.Control value={move_rate.toString()} disabled />
+                    <Form.Control value={moverate.toString()} disabled />
                     <div>ダメージボーナス</div>
-                    <Form.Control value={damage_bonus} disabled />
+                    <Form.Control value={damagebonus.toString()} disabled />
                     <div>HP</div>
                     <div>
                         <div>初期値</div>
-                        <Form.Control value={initial_hp.toString()} disabled />
+                        <Form.Control value={initialHp.toString()} disabled />
                         <div>変化後</div>
-                        <Form.Control value={current_hp.toString()} onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_current_hp(e.currentTarget.value)} />
+                        <Form.Control value={currentHp.toString()} onInput={(e: React.FormEvent<HTMLInputElement>) => this.setCurrentHp(e.currentTarget.value)} />
                     </div>
                     <div>MP</div>
                     <div>
                         <div>初期値</div>
-                        <Form.Control value={initial_mp.toString()} disabled />
+                        <Form.Control value={initialMp.toString()} disabled />
                         <div>変化後</div>
-                        <Form.Control value={current_mp.toString()} onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_current_mp(e.currentTarget.value)} />
+                        <Form.Control value={currentMp.toString()} onInput={(e: React.FormEvent<HTMLInputElement>) => this.setCurrentMp(e.currentTarget.value)} />
                     </div>
                     <div>SAN</div>
                     <div>
                         <div>初期値</div>
-                        <Form.Control value={initial_san.toString()} disabled />
+                        <Form.Control value={initialSan.toString()} disabled />
                         <div>変化後</div>
-                        <Form.Control value={current_san.toString()} onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_current_san(e.currentTarget.value)} />
+                        <Form.Control value={currentSan.toString()} onInput={(e: React.FormEvent<HTMLInputElement>) => this.setCurrentSan(e.currentTarget.value)} />
                     </div>
                 </div>
                 <div id="status">
@@ -615,45 +590,44 @@ export class App extends React.Component<Props, State> {
                     <div className="heading">ハード</div>
                     <div className="heading">イクストリーム</div>
 
-                    {active_status_order.map(status_kind => [
-                        <div>{status_kind.toLocaleUpperCase()}</div>,
-                        <Form.Check
-                            custom
-                            id={`lock-${status_kind}`}
-                            type="checkbox"
-                            label=""
-                            checked={this.state.locked[status_kind]}
-                            onClick={() => this.set_status_locked_status(status_kind, !this.state.locked[status_kind])}
-                        />,
-                        <Form.Control
-                            as="input"
-                            value={
-                                this.state.locked[status_kind] ?
-                                    this.state.initial_status[status_kind].toString() :
-                                    this.state.dice_roll[status_kind]
-                            }
-                            disabled={this.state.locked[status_kind]}
-                            onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_status_dice_roll(status_kind, e.currentTarget.value)}
-                        />,
-                        <Form.Control value={this.state.initial_status[status_kind].toString()} disabled />,
-                        <Form.Control
-                            value={status[status_kind].toString()}
-                            onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_current_status(status_kind, e.currentTarget.value)}
-                        />,
-                        <Form.Control value={status[status_kind].toString()} disabled />,
-                        <Form.Control value={Math.ceil(status[status_kind] / 2).toString()} disabled />,
-                        <Form.Control value={Math.ceil(status[status_kind] / 5).toString()} disabled />,
-                    ])}
+                    {activeStatusOrder.map(tag => {
+                        const statusProps = this.state.activeStatus[tag];
+                        return [
+                            <div>{tag.toLocaleUpperCase()}</div>,
+                            <Form.Check
+                                custom
+                                id={`lock-${tag}`}
+                                type="checkbox"
+                                label=""
+                                checked={statusProps.locked}
+                                onClick={() => this.setStatusLockedStatus(tag, !statusProps.locked)}
+                            />,
+                            <Form.Control
+                                as="input"
+                                value={statusProps.locked ? statusProps.initialStatus.toString() : statusProps.diceRoll}
+                                disabled={statusProps.locked}
+                                onInput={(e: React.FormEvent<HTMLInputElement>) => this.setStatusDiceRoll(tag, e.currentTarget.value)}
+                            />,
+                            <Form.Control value={statusProps.initialStatus.toString()} disabled />,
+                            <Form.Control
+                                value={status[tag].toString()}
+                                onInput={(e: React.FormEvent<HTMLInputElement>) => this.setCurrentStatus(tag, e.currentTarget.value)}
+                            />,
+                            <Form.Control value={status[tag].toString()} disabled />,
+                            <Form.Control value={Math.ceil(status[tag] / 2).toString()} disabled />,
+                            <Form.Control value={Math.ceil(status[tag] / 5).toString()} disabled />,
+                        ];
+                    })}
 
                     <div className="controller" />
                     <div />
                     <div className="controller">
-                        <Button onClick={() => this.roll_all_status()}>振り直す</Button>
-                        <Button variant="danger" onClick={() => this.reset_all_status()}>リセット</Button>
+                        <Button onClick={() => this.rollAllStatus()}>振り直す</Button>
+                        <Button variant="danger" onClick={() => this.resetAllStatus()}>リセット</Button>
                     </div>
                     <div className="controller" />
                     <div className="controller">
-                        <Button variant="danger" onClick={() => this.reset_current_status()}>リセット</Button>
+                        <Button variant="danger" onClick={() => this.resetCurrentStatus()}>リセット</Button>
                     </div>
                     <div className="controller" />
                     <div className="controller" />
@@ -665,27 +639,27 @@ export class App extends React.Component<Props, State> {
                             custom
                             label="変化後の値をもとに計算"
                             id="calc-point-based-on-current-status"
-                            onClick={() => this.set_calc_point_based_on_current_status_flag(!this.state.calc_point_based_on_current_status)}
+                            onClick={() => this.setCalcSkillPointBasedOnCurrentStatusFlag(!this.state.calcSkillPointBasedOnCurrentStatus)}
                         />
                     </div>
                     <div className="skill-points">
                         <h5>
                             <span>職業ポイント</span>
-                            <span>({digit(used_occupation_point, 3)}/{digit(max_occupation_point, 3)})</span>
+                            <span>({digit(usedOccupationPoint, 3)}/{digit(maxOccupationPoint, 3)})</span>
                         </h5>
                         <Form.Control
                             as="input"
-                            value={this.state.occupation_point}
-                            onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_occupation_point(e.currentTarget.value)}
+                            value={this.state.occupationPoint}
+                            onInput={(e: React.FormEvent<HTMLInputElement>) => this.setOccupationPoint(e.currentTarget.value)}
                         />
                         <h5>
                             <span>趣味ポイント</span>
-                            <span>({digit(used_hobby_point, 3)}/{digit(max_hobby_point, 3)})</span>
+                            <span>({digit(usedHobbyPoint, 3)}/{digit(maxHobbyPoint, 3)})</span>
                         </h5>
                         <Form.Control
                             as="input"
-                            value={this.state.hobby_point}
-                            onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_hobby_point(e.currentTarget.value)}
+                            value={this.state.hobbyPoint}
+                            onInput={(e: React.FormEvent<HTMLInputElement>) => this.setHobbyPoint(e.currentTarget.value)}
                         />
                     </div>
                     <div className="skill-list">
@@ -707,40 +681,40 @@ export class App extends React.Component<Props, State> {
                                     else
                                         return skill.name;
                                 })();
-                                const initial_point = (() => {
-                                    if (typeof skill.initial_point == "string")
-                                        if (this.state.calc_point_based_on_current_status)
-                                            return Math.ceil(DiceBot.exec(skill.initial_point, current_vars));
+                                const initialPoint = (() => {
+                                    if (typeof skill.initialPoint == "string")
+                                        if (this.state.calcSkillPointBasedOnCurrentStatus)
+                                            return Math.ceil(DiceBot.exec(skill.initialPoint, currentVars));
                                         else
-                                            return Math.ceil(DiceBot.exec(skill.initial_point, initial_vars));
+                                            return Math.ceil(DiceBot.exec(skill.initialPoint, initialVars));
                                     else
-                                        return skill.initial_point;
+                                        return skill.initialPoint;
                                 })();
-                                const sum = skill.occupation_point + skill.hobby_point + skill.other_point + initial_point;
+                                const sum = skill.occupationPoint + skill.hobbyPoint + skill.otherPoint + initialPoint;
                                 return [
                                     <div className="row-controller">
-                                        <Button variant="danger" disabled={typeof skill.name == "symbol"} onClick={() => this.remove_skill(parent, skill)}>×</Button>
+                                        <Button variant="danger" disabled={typeof skill.name == "symbol"} onClick={() => this.removeSkill(parent, skill)}>×</Button>
                                     </div>,
                                     <Form.Control
                                         value={skill_name}
                                         disabled={typeof skill.name == "symbol"}
-                                        onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_skill_name(skill, e.currentTarget.value)}
+                                        onInput={(e: React.FormEvent<HTMLInputElement>) => this.setSkillName(skill, e.currentTarget.value)}
                                     />,
                                     <Form.Control
-                                        value={skill.occupation_point.toString()}
-                                        onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_skill_occupation_point(skill, e.currentTarget.value)}
+                                        value={skill.occupationPoint.toString()}
+                                        onInput={(e: React.FormEvent<HTMLInputElement>) => this.setSkillOccupationPoint(skill, e.currentTarget.value)}
                                     />,
                                     <Form.Control
-                                        value={skill.hobby_point.toString()}
-                                        onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_skill_hobby_point(skill, e.currentTarget.value)}
+                                        value={skill.hobbyPoint.toString()}
+                                        onInput={(e: React.FormEvent<HTMLInputElement>) => this.setSkillHobbyPoint(skill, e.currentTarget.value)}
                                     />,
                                     <Form.Control
-                                        value={skill.other_point.toString()}
-                                        onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_skill_other_point(skill, e.currentTarget.value)}
+                                        value={skill.otherPoint.toString()}
+                                        onInput={(e: React.FormEvent<HTMLInputElement>) => this.setSkillOtherPoint(skill, e.currentTarget.value)}
                                     />,
                                     <Form.Control
-                                        value={skill.initial_point.toString()}
-                                        onInput={(e: React.FormEvent<HTMLInputElement>) => this.set_skill_initial_point(skill, e.currentTarget.value)}
+                                        value={skill.initialPoint.toString()}
+                                        onInput={(e: React.FormEvent<HTMLInputElement>) => this.setSkillInitialPoint(skill, e.currentTarget.value)}
                                     />,
                                     <Form.Control value={sum.toString()} disabled />,
                                     <Form.Control value={sum.toString()} disabled />,
@@ -767,7 +741,7 @@ export class App extends React.Component<Props, State> {
                                         />,
                                         item.skills.map((skill) => row(item.skills, skill)),
                                         <div />,
-                                        <Button variant="primary" onClick={() => this.add_skill_to_skill_groupe(item)}>追加</Button>,
+                                        <Button variant="primary" onClick={() => this.addSkillToSkillGroupe(item)}>追加</Button>,
                                         <div />,
                                         <div />,
                                         <div />,
