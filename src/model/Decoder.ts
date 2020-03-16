@@ -44,12 +44,19 @@ export const boolean: Decoder<boolean> = (x: any): boolean => {
     }
 }
 
-export const object = <T>(decoders: { [P in keyof T]: Decoder<T[P]> }): Decoder<T> => {
+export const object = <T>(decoders: { [P in keyof T]: Decoder<T[P]> | [string, Decoder<T[P]>] }): Decoder<T> => {
     return (x: any): T => {
         if (typeof x == "object") {
             const result = {} as T;
             for (const key in decoders) {
-                result[key] = decoders[key](x[key]);
+                const maybeDecoder = decoders[key];
+                if (Array.isArray(maybeDecoder)) {
+                    const [fieladName, decoder] = maybeDecoder;
+                    result[key] = decoder(x[fieladName]);
+                } else {
+                    // VSCodeでエラー表示が消えないのでanyにキャストして無理やり消去
+                    result[key] = (maybeDecoder as any)(x[key]);
+                }
             }
             return result;
         } else {
@@ -114,10 +121,10 @@ export const convertableToNumber: Decoder<number> = (x: any): number => {
     }
 }
 
-export const convertableToMap = <V>(decoder: Decoder<V>): Decoder<Map<string, V>> => {
-    return (x: any): Map<string, V> => {
+export const convertableToMap = <K, V>(keyMapper: (key: string) => K, decoder: Decoder<V>): Decoder<Map<K, V>> => {
+    return (x: any): Map<K, V> => {
         if (typeof x == "object" && !Array.isArray(x)) {
-            return new Map(Object.entries(x).map(([k, v]) => ([k, decoder(v)])));
+            return new Map(Object.entries(x).map(([k, v]) => ([keyMapper(k), decoder(v)])));
         } else {
             throw new Error(`${x} is not convertable to Map.`);
         }
@@ -139,5 +146,11 @@ export const tries = <T>(decoders: Decoder<T>[]): Decoder<T> => {
             }
         }
         throw errs;
+    }
+}
+
+export const succeed = <T>(value: T): Decoder<T> => {
+    return (_: any) => {
+        return value;
     }
 }
