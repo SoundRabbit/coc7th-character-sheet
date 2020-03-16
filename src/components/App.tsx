@@ -156,6 +156,10 @@ type State = {
     //キャラクタID
     characterId: string,
 
+    //保存時のパスワード
+    password: string,
+    newPassword: string,
+
     // 探索者の基本情報
     name: string,
     occupation: string,
@@ -176,7 +180,7 @@ type State = {
     skills: Skills
 }
 
-type SavableState = { [K in Exclude<keyof State, "characterId">]: State[K] }
+type SavableState = { [K in Exclude<keyof State, "characterId" | "password" | "newPassword">]: State[K] }
 
 const activeStatusPropsDecoder: Decoder.Decoder<ActiveStatusProps> = Decoder.object({
     diceRoll: Decoder.string,
@@ -258,6 +262,8 @@ export class App extends React.Component<Props, State> {
         })();
         this.state = {
             characterId: query.get("character-id") || Uuid.v4(),
+            password: "",
+            newPassword: "",
 
             name: "",
             occupation: "",
@@ -298,6 +304,18 @@ export class App extends React.Component<Props, State> {
             xhr.open("GET", url);
             xhr.send();
         }).catch(_ => { });
+    }
+
+    setPassword(password: string) {
+        this.setState({
+            password
+        });
+    }
+
+    setNewPassword(newPassword: string) {
+        this.setState({
+            newPassword
+        });
     }
 
     setName(name: string) {
@@ -532,14 +550,71 @@ export class App extends React.Component<Props, State> {
         }
     }
 
-    saveToFirebaseStrage(password: string, newPassword: string) {
-        // format = "raw" | "base64" | "base64url" | "data_url"
-        this.props.strage.ref(`character-sheet/${this.state.characterId}`).putString("", "raw", {
-            customMetadata: {
-                password,
-                newPassword
+    saveToFirebaseStrage() {
+        const saveData: any = {};
+        saveData["name"] = this.state.name;
+        saveData["occupation"] = this.state.occupation;
+        saveData["age"] = this.state.age;
+        saveData["sex"] = this.state.sex;
+        saveData["residense"] = this.state.residence;
+        saveData["birthplace"] = this.state.birthplace;
+        saveData["currentHp"] = this.state.currentHp;
+        saveData["currentSan"] = this.state.currentSan;
+        saveData["currentMp"] = this.state.currentMp;
+        saveData["occupationPoint"] = this.state.occupationPoint;
+        saveData["hobbyPoint"] = this.state.hobbyPoint;
+        saveData["calcSkillPointBasedOnCurrentStatus"] = this.state.calcSkillPointBasedOnCurrentStatus;
+
+        saveData["activeStatus"] = {};
+        for (const tag of activeStatusOrder) {
+            saveData["activeStatus"][tag] = {};
+            saveData["activeStatus"][tag]["currentStatus"] = this.state.activeStatus[tag].currentStatus;
+            saveData["activeStatus"][tag]["diceRoll"] = this.state.activeStatus[tag].diceRoll;
+            saveData["activeStatus"][tag]["initialStatus"] = this.state.activeStatus[tag].initialStatus;
+            saveData["activeStatus"][tag]["locked"] = this.state.activeStatus[tag].locked;
+        }
+
+        saveData["skills"] = [];
+        for (const maybeSkill of this.state.skills) {
+            if (maybeSkill.tag == "Skill") {
+                const skill = maybeSkill;
+                const skillBuffer: any = {};
+                if (typeof skill.name == "symbol") { skillBuffer["name"] = Symbol.keyFor(skill.name) }
+                else { skillBuffer["name"] = skill.name }
+                skillBuffer["hobbyPoint"] = skill.hobbyPoint;
+                skillBuffer["initialPoint"] = skill.initialPoint;
+                skillBuffer["occupationPoint"] = skill.occupationPoint;
+                skillBuffer["otherPoint"] = skill.otherPoint;
+                saveData["skills"].push(skillBuffer);
+            } else {
+                const skillGroupe = maybeSkill;
+                const skillGroupeBuffer: any = {};
+                if (typeof skillGroupe.name == "symbol") { skillGroupeBuffer["name"] = Symbol.keyFor(skillGroupe.name) }
+                else { skillGroupeBuffer["name"] = skillGroupe.name }
+                skillGroupeBuffer["skills"] = [];
+                for (const skill of skillGroupe.skills) {
+                    const skillBuffer: any = {};
+                    if (typeof skill.name == "symbol") { skillBuffer["name"] = Symbol.keyFor(skill.name) }
+                    else { skillBuffer["name"] = skill.name }
+                    skillBuffer["hobbyPoint"] = skill.hobbyPoint;
+                    skillBuffer["initialPoint"] = skill.initialPoint;
+                    skillBuffer["occupationPoint"] = skill.occupationPoint;
+                    skillBuffer["otherPoint"] = skill.otherPoint;
+                    skillGroupeBuffer["skills"].push(skillBuffer);
+                }
+                saveData["skills"].push(skillGroupeBuffer);
             }
-        });
+        }
+
+        // format = "raw" | "base64" | "base64url" | "data_url"
+        this.props.strage.ref(`character-sheet/${this.state.characterId}`).putString(JSON.stringify(saveData), "raw", {
+            customMetadata: {
+                password: this.state.password,
+                newPassword: this.state.password
+            }
+        }).then(() => {
+            location.href = Url(location.href).pathname + `?character-id=${this.state.characterId}`;
+        })
     }
 
     render(): JSX.Element | null {
@@ -622,6 +697,11 @@ export class App extends React.Component<Props, State> {
         return (
             <div id="app">
                 <div id="profile">
+                    <Button variant="success" onClick={() => this.saveToFirebaseStrage()}>保存</Button>
+                    <div>
+                        <div>パスワード</div>
+                        <Form.Control type="password" value={this.state.password} onInput={(e: React.FormEvent<HTMLInputElement>) => this.setPassword(e.currentTarget.value)} />
+                    </div>
                     <div>PC名</div>
                     <Form.Control value={this.state.name} onInput={(e: React.FormEvent<HTMLInputElement>) => this.setName(e.currentTarget.value)} />
                     <div>職業</div>
