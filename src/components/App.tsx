@@ -154,7 +154,7 @@ const defaultSkills = (): Skills => ([
 
 type State = {
     //キャラクタID
-    character_id: string,
+    characterId: string,
 
     // 探索者の基本情報
     name: string,
@@ -176,6 +176,69 @@ type State = {
     skills: Skills
 }
 
+type SavableState = { [K in Exclude<keyof State, "characterId">]: State[K] }
+
+const activeStatusPropsDecoder: Decoder.Decoder<ActiveStatusProps> = Decoder.object({
+    diceRoll: Decoder.string,
+    locked: Decoder.boolean,
+    initialStatus: Decoder.number,
+    currentStatus: Decoder.nullable(Decoder.number),
+});
+
+const activeStatusDecoder: Decoder.Decoder<ActiveStatus> = Decoder.object({
+    str: activeStatusPropsDecoder,
+    con: activeStatusPropsDecoder,
+    siz: activeStatusPropsDecoder,
+    dex: activeStatusPropsDecoder,
+    app: activeStatusPropsDecoder,
+    int: activeStatusPropsDecoder,
+    edu: activeStatusPropsDecoder,
+    pow: activeStatusPropsDecoder,
+    luck: activeStatusPropsDecoder,
+});
+
+const skillNameDecoder: Decoder.Decoder<string | symbol> = (x: any): symbol | string => {
+    const skills = defaultSkills();
+    for (const skill of skills) {
+        if (typeof skill.name == "symbol" && Symbol.keyFor(skill.name) == String(x)) {
+            return skill.name;
+        }
+    }
+    return String(x);
+};
+
+const skillDecoder: Decoder.Decoder<Skill> = Decoder.object({
+    tag: Decoder.succeed("Skill"),
+    name: skillNameDecoder,
+    occupationPoint: Decoder.number,
+    hobbyPoint: Decoder.number,
+    otherPoint: Decoder.number,
+    initialPoint: Decoder.number
+});
+
+const skillGroupeDecoder: Decoder.Decoder<SkillGroupe> = Decoder.object({
+    tag: Decoder.succeed("SkillGroupe"),
+    name: skillNameDecoder,
+    skills: Decoder.array(skillDecoder)
+});
+
+const savableStateDecoder: Decoder.Decoder<SavableState> = Decoder.object({
+    name: Decoder.string,
+    occupation: Decoder.string,
+    age: Decoder.string,
+    sex: Decoder.string,
+    residence: Decoder.string,
+    birthplace: Decoder.string,
+    activeStatus: activeStatusDecoder,
+    currentHp: Decoder.nullable(Decoder.number),
+    currentSan: Decoder.nullable(Decoder.number),
+    currentMp: Decoder.nullable(Decoder.number),
+    occupationPoint: Decoder.string,
+    hobbyPoint: Decoder.string,
+    calcSkillPointBasedOnCurrentStatus: Decoder.boolean,
+    skills: Decoder.array(Decoder.tries<Skill | SkillGroupe>([skillDecoder, skillGroupeDecoder]))
+});
+
 export class App extends React.Component<Props, State> {
     state: State
     constructor(props: Props) {
@@ -194,7 +257,7 @@ export class App extends React.Component<Props, State> {
             }
         })();
         this.state = {
-            character_id: query.get("character-id") || Uuid.v4(),
+            characterId: query.get("character-id") || Uuid.v4(),
 
             name: "",
             occupation: "",
@@ -226,13 +289,11 @@ export class App extends React.Component<Props, State> {
             skills: defaultSkills(),
         }
 
-        this.props.strage.ref(`character-sheet/${this.state.character_id}`).getDownloadURL().then(url => {
+        this.props.strage.ref(`character-sheet/${this.state.characterId}`).getDownloadURL().then(url => {
             const xhr = new XMLHttpRequest();
-            xhr.responseType = "json";
+            xhr.responseType = "text";
             xhr.onload = _ => {
-                if (xhr.response) {
-
-                }
+                this.loadFromJson(xhr.response);
             }
             xhr.open("GET", url);
             xhr.send();
@@ -460,6 +521,25 @@ export class App extends React.Component<Props, State> {
                 skills: this.state.skills.concat()
             });
         }
+    }
+
+    loadFromJson(jsonText: string) {
+        try {
+            const jsonValue = JSON.parse(jsonText);
+            this.setState(savableStateDecoder(jsonValue));
+        } catch (_) {
+
+        }
+    }
+
+    saveToFirebaseStrage(password: string, newPassword: string) {
+        // format = "raw" | "base64" | "base64url" | "data_url"
+        this.props.strage.ref(`character-sheet/${this.state.characterId}`).putString("", "raw", {
+            customMetadata: {
+                password,
+                newPassword
+            }
+        });
     }
 
     render(): JSX.Element | null {
