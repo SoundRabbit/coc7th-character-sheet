@@ -37,7 +37,7 @@ body {
 #status {
     display: grid;
     grid-template-columns: max-content max-content max-content 1fr 1fr 1fr 1fr 1fr;
-    grid-auto-columns: max-content;
+    grid-auto-rows: max-content;
     column-gap: 2ch;
     align-items: center;
     justify-items: center;
@@ -99,7 +99,7 @@ body {
     }
 }
 
-@media screen and (max-width: 1199px) {
+@media screen and (max-width: 1919px) {
     #app {
         grid-template-columns: 1fr;
         grid-template-rows: max-content max-content max-content;
@@ -107,7 +107,7 @@ body {
     }
 }
 
-@media screen and (min-width: 1200px) {
+@media screen and (min-width: 1920px) {
     #app {
         grid-template-columns: 5fr 13fr;
         grid-template-rows: max-content max-content;
