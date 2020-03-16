@@ -556,7 +556,11 @@ export class App extends React.Component<Props, State> {
 
     saveToFirebaseStrage() {
         // format = "raw" | "base64" | "base64url" | "data_url"
-        this.props.strage.ref(`character-sheet/${this.state.characterId}`).putString(this.saveData(), "raw")
+        this.props.strage.ref(`character-sheet/${this.state.characterId}`).putString(this.saveData(), "raw", {
+            customMetadata: {
+                name: this.state.name
+            }
+        })
             .then(() => {
                 location.href = Url(location.href).pathname + `?character-id=${this.state.characterId}`;
             })
