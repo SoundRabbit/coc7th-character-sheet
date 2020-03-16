@@ -12,7 +12,7 @@ export class Error<T> {
     }
 
     get description(): T {
-        return this.description;
+        return this.__description;
     }
 
     get errorType(): ErrorType {
