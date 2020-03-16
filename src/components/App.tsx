@@ -155,6 +155,7 @@ const defaultSkills = (): Skills => ([
 type State = {
     //キャラクタID
     characterId: string,
+    skillListTabState: "Right" | "Left",
 
     // 探索者の基本情報
     name: string,
@@ -176,7 +177,7 @@ type State = {
     skills: Skills
 }
 
-type SavableState = { [K in Exclude<keyof State, "characterId">]: State[K] }
+type SavableState = { [K in Exclude<keyof State, "characterId" | "skillListTabState">]: State[K] }
 
 const activeStatusPropsDecoder: Decoder.Decoder<ActiveStatusProps> = Decoder.object({
     diceRoll: Decoder.string,
@@ -258,6 +259,7 @@ export class App extends React.Component<Props, State> {
         })();
         this.state = {
             characterId: query.get("character-id") || Uuid.v4(),
+            skillListTabState: "Left",
 
             name: "",
             occupation: "",
@@ -454,6 +456,18 @@ export class App extends React.Component<Props, State> {
         this.setState({
             calcSkillPointBasedOnCurrentStatus
         });
+    }
+
+    toggleSkillListTabState() {
+        if (this.state.skillListTabState == "Left") {
+            this.setState({
+                skillListTabState: "Right"
+            });
+        } else {
+            this.setState({
+                skillListTabState: "Left"
+            });
+        }
     }
 
     setSkillName(skill: Skill, name: string) {
@@ -853,17 +867,25 @@ export class App extends React.Component<Props, State> {
                             onInput={(e: React.FormEvent<HTMLInputElement>) => this.setHobbyPoint(e.currentTarget.value)}
                         />
                     </div>
-                    <div className="skill-list">
+                    <div className="skill-list" data-tab={this.state.skillListTabState}>
+                        <div className="controller" data-column="2" />
+                        <Button className="controller" data-column="4" onClick={() => this.toggleSkillListTabState()}>
+                            {this.state.skillListTabState == "Left" ? "→←" : "←→"}
+                        </Button>
+                        <div className="controller" data-column="1" />
+                        <Button className="controller" data-column="3" onClick={() => this.toggleSkillListTabState()}>
+                            {this.state.skillListTabState == "Right" ? "→←" : "←→"}
+                        </Button>
                         <div className="heading" />
                         <div className="heading">技能</div>
-                        <div className="heading">職業ポイント</div>
-                        <div className="heading">趣味ポイント</div>
-                        <div className="heading">その他ポイント</div>
-                        <div className="heading">初期ポイント</div>
+                        <div className="heading" data-tab="Left"><span>職業ポイント</span></div>
+                        <div className="heading" data-tab="Left"><span>趣味ポイント</span></div>
+                        <div className="heading" data-tab="Left"><span>その他ポイント</span></div>
+                        <div className="heading" data-tab="Left"><span>初期ポイント</span></div>
                         <div className="heading">合計</div>
-                        <div className="heading">レギュラー</div>
-                        <div className="heading">ハード</div>
-                        <div className="heading">イクストリーム</div>
+                        <div className="heading" data-tab="Right"><span>レギュラー</span></div>
+                        <div className="heading" data-tab="Right"><span>ハード</span></div>
+                        <div className="heading" data-tab="Right"><span>イクストリーム</span></div>
                         {this.state.skills.map((item: Skill | SkillGroupe) => {
                             const row = (parent: Skills | Skill[], skill: Skill) => {
                                 const skill_name = (() => {

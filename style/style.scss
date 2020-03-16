@@ -79,7 +79,6 @@ body {
 
     & .skill-list {
         display: grid;
-        grid-template-columns: max-content max-content 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
         grid-auto-rows: max-content;
         row-gap: 1ch;
         column-gap: 2ch;
@@ -95,6 +94,68 @@ body {
         }
         & > .heading {
             justify-self: center;
+        }
+        & > * {
+            &[data-column="1"] {
+                grid-column: span 1;
+            }
+            &[data-column="2"] {
+                grid-column: span 2;
+            }
+            &[data-column="3"] {
+                grid-column: span 3;
+            }
+            &[data-column="4"] {
+                grid-column: span 4;
+            }
+            &[data-column="5"] {
+                grid-column: span 5;
+            }
+            &[data-column="6"] {
+                grid-column: span 6;
+            }
+            &[data-column="7"] {
+                grid-column: span 7;
+            }
+            &[data-column="8"] {
+                grid-column: span 8;
+            }
+            &[data-column="9"] {
+                grid-column: span 9;
+            }
+            &[data-column="10"] {
+                grid-column: span 10;
+            }
+        }
+    }
+}
+
+@media screen and (max-width: 1439px) {
+    #skill {
+        & .skill-list {
+            &[data-tab="Left"] {
+                grid-template-columns: max-content max-content 1fr 1fr 1fr 1fr 1fr min-content min-content min-content;
+                & > div[data-tab="Right"] > span {
+                    display: none;
+                }
+            }
+            &[data-tab="Right"] {
+                grid-template-columns: max-content max-content min-content min-content min-content min-content 1fr 1fr 1fr 1fr;
+                & > div[data-tab="Left"] > span {
+                    display: none;
+                }
+            }
+        }
+    }
+}
+
+@media screen and (min-width: 1440px) {
+    #skill {
+        & .skill-list {
+            grid-template-columns: max-content max-content 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+            & > .controller {
+                display: none;
+            }
         }
     }
 }
