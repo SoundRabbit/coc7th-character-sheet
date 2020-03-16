@@ -1,4 +1,4 @@
-type Decoder<T> = (x: any) => T
+export type Decoder<T> = (x: any) => T
 
 export type ErrorType = "TypeMissmatch";
 
