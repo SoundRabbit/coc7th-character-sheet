@@ -71,10 +71,11 @@ export const array = <T>(decoder: Decoder<T>): Decoder<Array<T>> => {
 declare const None: unique symbol
 type None = typeof None
 type Push<H, A extends Array<any>> = ((head: H, ...a: A) => never) extends ((...a: infer T) => never) ? T : []
-type HeadSlice<T extends Array<any>> = ((...a: T) => never) extends ((head: infer Head, ...others: infer Others) => never) ? [Head, Others] : [None, []]
+type Head<A extends Array<any>> = A["length"] extends 0 ? None : A[0]
+type Pop<A extends Array<any>> = ((...a: A) => never) extends ((head: any, ...others: infer Others) => never) ? Others : []
 type DecoderTuple<Tuple extends Array<any>, Result extends Array<Decoder<any>> = []> = {
     "done": Result
-    "continue": DecoderTuple<HeadSlice<Tuple>[1], Push<Decoder<HeadSlice<Tuple>[0]>, Result>>
+    "continue": DecoderTuple<Pop<Tuple>, Push<Decoder<Head<Tuple>>, Result>>
 }[Tuple["length"] extends 0 ? "done" : "continue"]
 
 export const tuple = <Tuple extends Array<any>>(decoders: DecoderTuple<Tuple>): Decoder<Tuple> => {
