@@ -105,7 +105,6 @@ const calc = (rpn_tokens: string[], vars: Map<string, number>): number => {
             }
         } else {
             if (token[0] == "$") {
-                console.log(token.slice(1));
                 const v = vars.get(token.slice(1));
                 if (v || v === 0) {
                     stack.push(v);
