@@ -156,10 +156,6 @@ type State = {
     //キャラクタID
     characterId: string,
 
-    //保存時のパスワード
-    password: string,
-    newPassword: string,
-
     // 探索者の基本情報
     name: string,
     occupation: string,
@@ -180,7 +176,7 @@ type State = {
     skills: Skills
 }
 
-type SavableState = { [K in Exclude<keyof State, "characterId" | "password" | "newPassword">]: State[K] }
+type SavableState = { [K in Exclude<keyof State, "characterId">]: State[K] }
 
 const activeStatusPropsDecoder: Decoder.Decoder<ActiveStatusProps> = Decoder.object({
     diceRoll: Decoder.string,
@@ -217,7 +213,7 @@ const skillDecoder: Decoder.Decoder<Skill> = Decoder.object({
     occupationPoint: Decoder.number,
     hobbyPoint: Decoder.number,
     otherPoint: Decoder.number,
-    initialPoint: Decoder.number
+    initialPoint: Decoder.tries<number | string>([Decoder.number, Decoder.string])
 });
 
 const skillGroupeDecoder: Decoder.Decoder<SkillGroupe> = Decoder.object({
@@ -262,8 +258,6 @@ export class App extends React.Component<Props, State> {
         })();
         this.state = {
             characterId: query.get("character-id") || Uuid.v4(),
-            password: "",
-            newPassword: "",
 
             name: "",
             occupation: "",
@@ -299,23 +293,11 @@ export class App extends React.Component<Props, State> {
             const xhr = new XMLHttpRequest();
             xhr.responseType = "text";
             xhr.onload = _ => {
-                this.loadFromJson(xhr.response);
+                this.loadFromJson(xhr.responseText);
             }
             xhr.open("GET", url);
             xhr.send();
         }).catch(_ => { });
-    }
-
-    setPassword(password: string) {
-        this.setState({
-            password
-        });
-    }
-
-    setNewPassword(newPassword: string) {
-        this.setState({
-            newPassword
-        });
     }
 
     setName(name: string) {
@@ -545,8 +527,8 @@ export class App extends React.Component<Props, State> {
         try {
             const jsonValue = JSON.parse(jsonText);
             this.setState(savableStateDecoder(jsonValue));
-        } catch (_) {
-
+        } catch (e) {
+            console.log(e);
         }
     }
 
@@ -556,7 +538,7 @@ export class App extends React.Component<Props, State> {
         saveData["occupation"] = this.state.occupation;
         saveData["age"] = this.state.age;
         saveData["sex"] = this.state.sex;
-        saveData["residense"] = this.state.residence;
+        saveData["residence"] = this.state.residence;
         saveData["birthplace"] = this.state.birthplace;
         saveData["currentHp"] = this.state.currentHp;
         saveData["currentSan"] = this.state.currentSan;
@@ -607,14 +589,10 @@ export class App extends React.Component<Props, State> {
         }
 
         // format = "raw" | "base64" | "base64url" | "data_url"
-        this.props.strage.ref(`character-sheet/${this.state.characterId}`).putString(JSON.stringify(saveData), "raw", {
-            customMetadata: {
-                password: this.state.password,
-                newPassword: this.state.password
-            }
-        }).then(() => {
-            location.href = Url(location.href).pathname + `?character-id=${this.state.characterId}`;
-        })
+        this.props.strage.ref(`character-sheet/${this.state.characterId}`).putString(JSON.stringify(saveData), "raw")
+            .then(() => {
+                location.href = Url(location.href).pathname + `?character-id=${this.state.characterId}`;
+            })
     }
 
     render(): JSX.Element | null {
@@ -698,10 +676,7 @@ export class App extends React.Component<Props, State> {
             <div id="app">
                 <div id="profile">
                     <Button variant="success" onClick={() => this.saveToFirebaseStrage()}>保存</Button>
-                    <div>
-                        <div>パスワード</div>
-                        <Form.Control type="password" value={this.state.password} onInput={(e: React.FormEvent<HTMLInputElement>) => this.setPassword(e.currentTarget.value)} />
-                    </div>
+                    <div>現在、パスワードによる保護には対応していません。</div>
                     <div>PC名</div>
                     <Form.Control value={this.state.name} onInput={(e: React.FormEvent<HTMLInputElement>) => this.setName(e.currentTarget.value)} />
                     <div>職業</div>
